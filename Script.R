@@ -36,6 +36,69 @@
 # Regards
 # 
 # Nick
-#                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+#                                 
+
+# 
+# From: Paul Norman [mailto:P.D.Norman@leeds.ac.uk] 
+# Sent: 18 May 2016 16:29
+# To: Mark Livingston
+# Cc: Mirjam Allik; Nick Bailey
+# Subject: RE: 2001 (and earlier) output areas to 2011 datazones
+# 
+# Here are the files …
+# 
+# From: Paul Norman 
+# Sent: 18 May 2016 16:25
+# To: 'Mark Livingston' <Mark.Livingston@glasgow.ac.uk>
+#   Cc: Mirjam Allik <Mirjam.Allik@glasgow.ac.uk>; Nick Bailey <Nick.Bailey@glasgow.ac.uk>
+#   Subject: RE: 2001 (and earlier) output areas to 2011 datazones
+# 
+# Hi Mark & colleagues
+# 
+# Yep, sure. Here you go. In the correspondence to Alistair I said that I had wanted to delve more into tenure for a revised Townsend over time but haven’t!
+#   
+#   The conversion tables operate the same way as stepped through in an Excel Northern Ireland spreadsheet version where this example is 2011 LGDs to the later fewer 2014(?) LGDs. Much of this then is just aggregation but where the weights are less than 1 the source data is apportioned to different LGDs.
+# 
+# Recipe:
+#   Join the original census ‘source’ data to the GCT
+# Multiple variables by the weights
+# Sum across the ‘target’ zones
+# 
+# In the Scotland conversions, the older to recent information involves more estimation of locations than the newer stuff. From memory, I think some 71 EDs in the islands struggle because the geocoding and coastline digitisation and differences over time will be somewhat iffy. Obviously if you spot something weird that compromises please shout!
+#   
+#   Let me know how you get on and if ever you want text to explain for papers etc.
+# 
+# Best wishes
+# 
+# Paul
+# 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#   Dr Paul Norman, School of Geography, University of Leeds
+# Programme Manager MSc GIS & Director of Taught Postgraduate Studies
+# https://sites.google.com/site/pdqnorman/home
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#   ´¯`·.¸¸.·´¯`·.¸ ><((((((º>
+#                              `·.¸¸.·´¯`·.¸¸.·´¯`·.¸ ><((((º>
+#                                                              
+#                                                              From: Mark Livingston [mailto:Mark.Livingston@glasgow.ac.uk] 
+#                                                            Sent: 18 May 2016 16:00
+#                                                            To: Paul Norman <P.D.Norman@leeds.ac.uk>
+#                                                              Cc: Mirjam Allik <Mirjam.Allik@glasgow.ac.uk>; Nick Bailey <Nick.Bailey@glasgow.ac.uk>
+#                                                              Subject: 2001 (and earlier) output areas to 2011 datazones
+#                                                            
+#                                                            Dear Paul,
+#                                                            
+#                                                            My colleague Mirjam passed on details of the work you have been doing on deprivation and on comparison over census years which is very interesting.
+#                                                            
+#                                                            Nick Bailey and Myself are currently working on making comparisons of private rental rates and other census data between census years in the UK, but in Scotland in particular, and we are interested in the method that you have used to make your comparisons.
+#                                                            In the chapters you have described your method for making comparison over years and you indicate that you have “Conversion tables” which  “have been developed for the work” . so we were wondering if it would be possible to get a copy of the conversion tables to allow us to convert data from previous census years to 2011 datazone boundaries.
+#                                                            
+#                                                            Best wishes
+#                                                            
+#                                                            Mark
+#                                                            
+#                                                            Mark Livingston
+#                                                            Research Fellow, Urban Big Data Centre, Urban Studies
+#                                                            School of Social and Political Sciences, University of Glasgow
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
