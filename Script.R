@@ -122,6 +122,31 @@ simd_combined %>%
 
 
 
+# Create cartograms 
+
+dz_2001_cart <- read_shape(
+  file = "shapefiles/scot_2001_dz_2012_pop/dz_cartogram.shp", 
+  current.projection = "longlat"
+  )
+
+
+simd_combined %>% 
+  select(datazone, year, simd_score) %>%
+  spread(year, simd_score) %>% 
+  append_data(
+    shp = dz_2001_cart, data = . ,
+    key.shp = "zonecode", key.data = "datazone"
+  ) %>% 
+  tm_shape(.) + 
+  tm_fill(col = c("2004", "2006", "2009", "2012")) -> simd_cart
+
+save_tmap(simd_cart, filename = "maps/simd_cart.png", width = 40, height = 40,
+          units = "cm", dpi = 300)
+
+ 
+
+
+
 # 
 # # 
 # # Gwilym/Jon/Gavin (cc. Mark/Mirjam)
