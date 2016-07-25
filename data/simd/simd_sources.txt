@@ -1,0 +1,29 @@
+# Location and details about SIMD files
+
+
+# SIMD 2012
+ 00410767.xls
+ extracted 25/7/2016
+ from 
+http://www.gov.scot/Topics/Statistics/SIMD/DataAnalysis/Background-Data-2012/Background2SIMD2012
+
+
+# SIMD 2009
+ 0102096.xls
+ extracted 25/7/2016
+  from 
+  http://www.gov.scot/Topics/Statistics/SIMD/background2simd2009
+  
+  
+# SIMD 2006
+ 0041675.xls
+ extracted 25/7/2016
+ from 
+ http://www.gov.scot/Topics/Statistics/SIMD/simdbackgrounddata2simd06
+ 
+# SIMD 2004
+ 0027000.xls
+ extracted 25/7/2016
+ from 
+ http://www.gov.scot/Publications/2004/06/19421/38087
+ 
