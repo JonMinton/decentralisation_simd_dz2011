@@ -5,6 +5,7 @@ require(pacman)
 pacman::p_load(
   readr, readxl,
   stringr, tidyr, dplyr, 
+  rgeos,
   ggplot2,
   tmap
 )
@@ -144,6 +145,116 @@ save_tmap(simd_cart, filename = "maps/simd_cart.png", width = 40, height = 40,
           units = "cm", dpi = 300)
 
  
+
+
+# Definitions of city centres  --------------------------------------------
+
+
+
+# 2001 centroids
+ttwa_centroids <- c(
+  Aberdeen = "S01000125",
+  Glasgow = "S01003358",
+  Edinburgh = "S01002131",
+  Dundee = "S01001101",
+  `Inverness and Dingwall` = "S01003853",
+  `Perth and Blairgowrie` = "S01005037",
+  `Stirling and Alloa` = "S01006120"
+  )
+
+# Add indicators of centres 
+tmp <- dz_2001 %>% .@data
+tmp$centre <-  NA 
+tmp$centre[match(ttwa_centroids, tmp$zonecode)] <- names(ttwa_centroids)
+tmp -> dz_2001@data
+rm(tmp)
+
+
+# Map this 
+
+tm_shape(dz_2001) + 
+  tm_borders()  + 
+  tm_bubbles( col = "centre",colorNA = NULL, showNA =F)
+
+
+# And for the cartogram
+
+tmp <- dz_2001_cart %>% .@data
+tmp$centre <- NA
+tmp$centre[match(ttwa_centroids, tmp$zonecode)] <- names(ttwa_centroids)
+tmp -> dz_2001_cart@data
+rm(tmp)
+
+# Map this 
+
+tm_shape(dz_2001_cart) + 
+  tm_borders()  + 
+  tm_bubbles( col = "centre",colorNA = NULL, showNA =F)
+
+# # 2011 centroids
+# ttwa_centroids <- c(
+#   Aberdeen = "S01006646",
+#   Glasgow = "S01010265",
+#   Edinburgh = "S01008677",
+#   Dundee = "S01007705",
+#   Inverness = "S01010620",
+#   Perth = "S01011939",
+#   `Falkirk and Stirling` = "S01013067"
+# )
+
+
+# Distance from centres  --------------------------------------------------
+
+# using rgeos::gCentroid
+
+calc_distance_to_centres <- function(shp, code_centre){
+  gCentroid(shp, byid = T) %>% 
+    as(., "data.frame") -> tmp
+    
+  data_frame(dz = as.character(shp@data$zonecode), x = tmp$x, y = tmp$y) %>% 
+  mutate(centre = dz == code_centre) %>% 
+  mutate(distance_to_centre = ((x - x[centre])^2 + (y - y[centre])^2)^0.5) -> output
+  output
+}
+
+
+dz_2001 %>% 
+  calc_distance_to_centres(., "S01003358") %>%  # Glasgow
+  append_data(dz_2001, ., key.shp = "zonecode", key.data = "dz", ignore.duplicates =T) %>% 
+  tm_shape(.) + 
+  tm_polygons(
+    col = "distance_to_centre", 
+    border.alpha = 0.1
+  )
+
+# Now for cartogram
+
+# Trying out
+
+# Aberdeen [Yes]
+# Glasgow [YES]
+# Edinburgh [Yes]
+# Dundee [Yes]
+
+
+# 2001 centroids
+#   Aberdeen = "S01000125",
+#   Glasgow = "S01003358",
+#   Edinburgh = "S01002131",
+#   Dundee = "S01001101",
+#   `Inverness and Dingwall` = "S01003853",
+#   `Perth and Blairgowrie` = "S01005037",
+#   `Stirling and Alloa` = "S01006120"
+
+
+dz_2001_cart %>% 
+  calc_distance_to_centres(., "S01003358") %>%  # Glasgow
+  append_data(dz_2001_cart, ., key.shp = "zonecode", key.data = "dz", ignore.duplicates =T) %>% 
+  tm_shape(.) + 
+  tm_polygons(
+    col = "distance_to_centre", border.alpha = 0.2
+  )
+
 
 
 
