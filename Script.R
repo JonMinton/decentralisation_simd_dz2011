@@ -10,91 +10,7 @@ pacman::p_load(
   tmap
 )
 
-
-# Load SIMDs --------------------------------------------------------------
-
-simd_2012 <- read_excel(path = "data/simd/00410767.xls")
-# SIMD 2012
-# 00410767.xls
-
-# SIMD 2009
-# 0102096.xls
-simd_2009 <- read_excel(path = "data/simd/0102096.xls")
-
-# SIMD 2006
-# 0041675.xls
-simd_2006 <- read_excel(path = "data/simd/0041675.xls")
-
-# SIMD 2004
-# 0027000.xls
-simd_2004 <- read_excel(path = "data/simd/0027000.xls")
-
-
-# Key attributes required: 
-# population, 
-# SIMD score
-# SIMD rank
-# Income deprivation % 
-
-simd_2004 %>% 
-  select(
-    datazone = `Data Zone`,
-    pop_total = `Total Population (2001 Census)`, 
-    pop_workingage = `Working Age Population (men 16-64, women 16-59, 2001 Census)`,
-    pop_incomedeprived = `Number of Current Income Deprived`,
-    simd_score = `SIMD Score`,
-    simd_rank = `SIMD Rank`
-    ) %>% 
-  mutate(year = 2004) %>% 
-  select(datazone, year, everything()) -> simd_2004_simple
-
-simd_2006 %>% 
-  select(
-    datazone = `Data Zone`,
-    pop_total = `Total Population (SAPE 2004)`, 
-    pop_workingage = `Working Age Population (men 16-64, women 16-59 SAPE 2004)`,
-    pop_incomedeprived = `Number of Current Income Deprived People 2006`,
-    simd_score = `SIMD 2006 Score`,
-    simd_rank = `SIMD 2006 Rank`
-  ) %>% 
-  mutate(year = 2006) %>% 
-  select(datazone, year, everything()) -> simd_2006_simple
-
-simd_2009 %>% 
-  select(
-    datazone = `Data Zone`, 
-    pop_total = `Total Population (SAPE 2007)`, 
-    pop_workingage = `Working Age Population (men 16-64, women 16-59 SAPE 2007)`, 
-    pop_incomedeprived = `Number of Income Deprived People 2009 V2 (Revised 19/07/10)`, 
-    simd_score = `SIMD 2009 V2 Score (Revised 19/07/10)`, 
-    simd_rank = `SIMD 2009 V2 Rank (Revised 19/07/10)`
-  ) %>% 
-  mutate(year = 2009) %>% 
-  select(datazone, year, everything()) -> simd_2009_simple
-
-simd_2012 %>% 
-  select(
-    datazone = `Data Zone`, 
-    pop_total = `Total Population (SAPE 2010)`, 
-    pop_workingage =`Best-fit Working Age Population** (men 16-64, women 16-60 SAPE 2010)`, 
-    pop_incomedeprived = `Number of Income Deprived People 2012`, 
-    simd_score = `Overall SIMD 2012 Score`, 
-    simd_rank = `Overall SIMD 2012 Rank`
-  ) %>% 
-  mutate(year = 2012) %>% 
-  select(datazone, year, everything()) -> simd_2012_simple
-
-# combine these 
-simd_combined <- bind_rows(
-  simd_2004_simple, 
-  simd_2006_simple, 
-  simd_2009_simple, 
-  simd_2012_simple
-  ) %>% 
-  filter(!is.na(datazone))
-
-
-
+simd_combined <- read_csv("data/simd/simd_combined.csv")
 
 # 2001 datazone shapefiles ------------------------------------------------
 
@@ -117,10 +33,13 @@ simd_combined %>%
     key.shp = "zonecode", key.data = "datazone"
               ) %>% 
   tm_shape(.) + 
-  tm_fill(col = c("2004", "2006", "2009", "2012"))
+  tm_facets(ncol = 4) + 
+  tm_fill(col = c("2004", "2006", "2009", "2012")) -> simd_chor
+
 
   # Which of course says don't live in Glasgow...
-
+save_tmap(simd_chor, filename = "maps/simd_chor.png", width = 40, height = 15,
+          units = "cm", dpi = 300)
 
 
 # Create cartograms 
@@ -139,12 +58,70 @@ simd_combined %>%
     key.shp = "zonecode", key.data = "datazone"
   ) %>% 
   tm_shape(.) + 
+  tm_facets(ncol = 4) +
   tm_fill(col = c("2004", "2006", "2009", "2012")) -> simd_cart
 
-save_tmap(simd_cart, filename = "maps/simd_cart.png", width = 40, height = 40,
+save_tmap(simd_cart, filename = "maps/simd_cart.png", width = 40, height = 15,
           units = "cm", dpi = 300)
 
- 
+
+
+# As before, but using proportino of working age population income deprived 
+
+simd_combined %>% 
+  select(datazone,year, pop_workingage, pop_incomedeprived) %>% 
+  mutate(prop_id = pop_incomedeprived/pop_workingage) %>% 
+  select(datazone, year, prop_id) %>% 
+  spread(key = year, value = prop_id) %>% 
+  append_data(
+    shp = dz_2001, data = . ,
+    key.shp = "zonecode", key.data = "datazone"
+  ) %>% 
+  tm_shape(.) + 
+  tm_facets(ncol = 4) +
+  tm_fill(col = c("2004", "2006", "2009", "2012")) -> id_chor
+
+save_tmap(id_chor, filename = "maps/incomedeprived_chor.png", width = 40, height = 15,
+          units = "cm", dpi = 300)
+
+# Income deprived, cartogram
+
+simd_combined %>% 
+  select(datazone,year, pop_workingage, pop_incomedeprived) %>% 
+  mutate(prop_id = pop_incomedeprived/pop_workingage) %>% 
+  select(datazone, year, prop_id) %>% 
+  spread(key = year, value = prop_id) %>% 
+  append_data(
+    shp = dz_2001_cart, data = . ,
+    key.shp = "zonecode", key.data = "datazone"
+  ) %>% 
+  tm_shape(.) + 
+  tm_facets(ncol = 4) +
+  tm_fill(col = c("2004", "2006", "2009", "2012")) -> id_cart
+
+save_tmap(id_cart, filename = "maps/incomedeprived_cart.png", width = 40, height = 15,
+          units = "cm", dpi = 300)
+
+
+# Maps of change from 2004 to 2012 , SIMD
+
+
+simd_combined %>% 
+  select(datazone, year, simd_score) %>%
+  spread(year, simd_score) %>%
+  mutate(dif = `2012` - `2004`) %>% 
+  append_data(
+    shp = dz_2001_cart, data = . ,
+    key.shp = "zonecode", key.data = "datazone"
+  ) %>% 
+  tm_shape(.) + 
+  tm_fill(col = "dif") -> simd_change_cart
+
+save_tmap(simd_cart, filename = "maps/simd_change_cart.png", height = 30, width = 15,
+          units = "cm", dpi = 300)
+
+
+
 
 
 # Definitions of city centres  --------------------------------------------
@@ -227,6 +204,84 @@ dz_2001 %>%
     border.alpha = 0.1
   )
 
+
+# For Glasgow, look at relationship between distance from Glasgow city centre and change in SIMD 
+
+dz_2001 %>% 
+  calc_distance_to_centres(., "S01003358") %>% 
+  select(datazone = dz, distance_to_centre) %>% 
+  right_join(simd_combined) %>% 
+  mutate(prop_id = pop_incomedeprived / pop_workingage) %>% 
+  select(datazone, distance_to_centre, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  mutate(change = `2012` - `2004`) %>% 
+  ggplot(., aes(x = distance_to_centre, y = change)) + 
+  geom_point( alpha = 0.1) + 
+  scale_x_log10() + 
+  stat_smooth() + 
+  geom_vline(aes(xintercept = 1e+3)) + 
+  geom_vline(aes(xintercept = 1.2e+4))
+
+# So changes in the expected direction
+
+# Now for edinburgh
+
+dz_2001 %>% 
+  calc_distance_to_centres(., "S01002131") %>% 
+  select(datazone = dz, distance_to_centre) %>% 
+  right_join(simd_combined) %>% 
+  mutate(prop_id = pop_incomedeprived / pop_workingage) %>% 
+  select(datazone, distance_to_centre, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  mutate(change = `2012` - `2004`) %>% 
+  ggplot(., aes(x = distance_to_centre, y = change)) + 
+  geom_point( alpha = 0.1) + 
+  scale_x_log10() + 
+  stat_smooth()
+
+# Similar, but also slighter 
+
+
+# Now for Dundee
+
+
+dz_2001 %>% 
+  calc_distance_to_centres(., "S01001101") %>% 
+  select(datazone = dz, distance_to_centre) %>% 
+  right_join(simd_combined) %>% 
+  mutate(prop_id = pop_incomedeprived / pop_workingage) %>% 
+  select(datazone, distance_to_centre, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  mutate(change = `2012` - `2004`) %>% 
+  ggplot(., aes(x = distance_to_centre, y = change)) + 
+  geom_point( alpha = 0.1) + 
+  scale_x_log10() + 
+  stat_smooth()
+
+
+# Aberdeen
+
+dz_2001 %>% 
+  calc_distance_to_centres(., "S01000125") %>% 
+  select(datazone = dz, distance_to_centre) %>% 
+  right_join(simd_combined) %>% 
+  mutate(prop_id = pop_incomedeprived / pop_workingage) %>% 
+  select(datazone, distance_to_centre, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  mutate(change = `2012` - `2004`) %>% 
+  ggplot(., aes(x = distance_to_centre, y = change)) + 
+  geom_point( alpha = 0.1) + 
+  scale_x_log10() + 
+  stat_smooth()
+
+
+
+# **********************************************
+# To do - identify centre closest to each point 
+
+
+
+
 # Now for cartogram
 
 # Trying out
@@ -254,6 +309,28 @@ dz_2001_cart %>%
   tm_polygons(
     col = "distance_to_centre", border.alpha = 0.2
   )
+
+
+
+
+# 2001 Datazones ----------------------------------------------------------
+
+
+dz_2011_shp <- read_shape(file = "shapefiles/SG_DataZoneBdry_2011/SG_DataZone_Bdry_2011.shp")
+
+#qtm(dz_2011_shp)
+
+# 2011 centroids
+ttwa_centroids <- c(
+  Aberdeen = "S01006646",
+  Glasgow = "S01010265",
+  Edinburgh = "S01008677",
+  Dundee = "S01007705",
+  Inverness = "S01010620",
+  Perth = "S01011939",
+  `Falkirk and Stirling` = "S01013067"
+)
+
 
 
 

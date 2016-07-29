@@ -1,0 +1,13 @@
+2 /6 / 2016
+
+Datazone shapefiles for 2011 were extracted from the following url:
+
+http://sedsh127.sedsh.gov.uk/Atom_data/ScotGov/ZippedShapefiles/SG_DataZoneBdry_2011.zip
+
+contained in the text for the following 'Atom Feed':
+http://sedsh127.sedsh.gov.uk/Atom_data/ScotGov/StatisticalUnits/SG_StatisticalUnits.atom.en.xml
+
+linked to here:
+https://data.gov.uk/dataset/data-zone-boundaries-2011
+
+- it SHOULD be easier than this!
