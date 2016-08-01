@@ -305,7 +305,6 @@ simd_combined  %>%
 
 
 # Dundee 
-# Aberdeen
 simd_combined  %>% 
   left_join(centre_distance) %>% 
   filter(nearest_centre == "Dundee") %>%
@@ -326,43 +325,28 @@ simd_combined  %>%
        title = "Dundee")
 
 
+# 2011 Datazones ----------------------------------------------------------
 
+lkup <-  read_csv("data/paul_norman_file/paul_norman_dz2011_table.csv")
 
-# Now for cartogram
-
-# Trying out
-
-# Aberdeen [Yes]
-# Glasgow [YES]
-# Edinburgh [Yes]
-# Dundee [Yes]
-
-
-# 2001 centroids
-#   Aberdeen = "S01000125",
-#   Glasgow = "S01003358",
-#   Edinburgh = "S01002131",
-#   Dundee = "S01001101",
-#   `Inverness and Dingwall` = "S01003853",
-#   `Perth and Blairgowrie` = "S01005037",
-#   `Stirling and Alloa` = "S01006120"
-
-
-dz_2001_cart %>% 
-  calc_distance_to_centres(., "S01003358") %>%  # Glasgow
-  append_data(dz_2001_cart, ., key.shp = "zonecode", key.data = "dz", ignore.duplicates =T) %>% 
-  tm_shape(.) + 
-  tm_polygons(
-    col = "distance_to_centre", border.alpha = 0.2
-  )
+lkup  %>% 
+  select(dz_2001, dz_2011)  %>% 
+  arrange(dz_2001, dz_2011)  %>%  
+  group_by(dz_2001, dz_2011)  %>% 
+  tally  %>% # produce n, giving number of OAs which contain particular groupings of dz_2001 and dz_2011
+  arrange(dz_2011, dz_2001)  %>% 
+  select(dz_2011, dz_2001, n)  %>% 
+  group_by(dz_2011)   %>% 
+  arrange(dz_2011, dz_2001) %>% 
+  mutate(weight = n / sum(n))   %>% # Weighting by dz_2011
+  left_join(simd_combined, by = c("dz_2001" = "datazone"))  %>% 
+  select(-simd_rank)  %>%  # Not meaningful to reweight rank
+  group_by(dz_2011, year) %>% 
+  summarise_each( ~ sum(. * weight), 6:9) -> simd_2011_reweighted
 
 
 
-
-# 2001 Datazones ----------------------------------------------------------
-
-
-dz_2011_shp <- read_shape(file = "shapefiles/SG_DataZoneBdry_2011/SG_DataZone_Bdry_2011.shp")
+dz_2011 <- read_shape(file = "shapefiles/SG_DataZoneBdry_2011/SG_DataZone_Bdry_2011.shp")
 
 #qtm(dz_2011_shp)
 
@@ -377,8 +361,158 @@ ttwa_centroids <- c(
   `Falkirk and Stirling` = "S01013067"
 )
 
+# using rgeos::gCentroid
+
+calc_distance_to_centres <- function(shp, code_centre){
+  gCentroid(shp, byid = T) %>% 
+    as(., "data.frame") -> tmp
+  
+  data_frame(dz = as.character(shp@data$DataZone), x = tmp$x, y = tmp$y) %>% 
+    mutate(centre = dz == code_centre) %>% 
+    mutate(distance_to_centre = ((x - x[centre])^2 + (y - y[centre])^2)^0.5) -> output
+  output
+}
 
 
+fn <- function(val, nm){
+  dz_2011 %>% 
+    calc_distance_to_centres(., val) %>% 
+    .[c(1, 5)] -> out 
+  names(out) <- c("datazone", nm)
+  out
+}
+
+# Find nearest centre and distance to nearest centre
+map2(ttwa_centroids, names(ttwa_centroids), fn) %>% 
+  reduce(., inner_join) %>% 
+  gather(place, distance, -datazone) %>%
+  arrange(datazone) %>% 
+  group_by(datazone) %>% 
+  mutate(min_distance = min(distance)) %>%
+  filter(distance == min_distance) %>% 
+  ungroup() %>% 
+  transmute(datazone, nearest_centre = place, distance_to_centre = distance) -> centre_distance
+
+
+# Check this works - plot distance to nearest centre
+dz_2011 %>% 
+  append_data(., centre_distance, key.shp = "DataZone", key.data = "datazone", ignore.duplicates =T) %>% 
+  tm_shape(.) + 
+  tm_polygons(
+    col = "distance_to_centre", 
+    border.alpha = 0.1
+  )
+
+# plot nearest centre
+dz_2011 %>% 
+  append_data(., centre_distance, key.shp = "DataZone", key.data = "datazone", ignore.duplicates = T) %>% 
+  tm_shape(.) + 
+  tm_polygons(col = "nearest_centre", border.alpha = 0)
+
+
+
+
+# Change in proportion income deprived compared with distance from city centre
+# for those datazones whose centres are closer to Glasgow than any other centre 
+simd_2011_reweighted  %>% ungroup() %>%  
+  left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
+  filter(nearest_centre == "Glasgow") %>%
+  distinct() %>% 
+  mutate(prop_id = pop_incomedeprived / pop_workingage) %>% 
+  select(dz_2011, distance_to_centre, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  mutate(change = `2012` - `2004`) %>% 
+  ggplot(., aes(x = distance_to_centre, y = change)) + 
+  geom_point( alpha = 0.1) + 
+  scale_x_log10() + 
+  scale_y_continuous(limits = c(-1.0, 0.5)) +
+  stat_smooth() + 
+  geom_hline(aes(yintercept = 0), linetype = "dashed") + 
+  geom_vline(aes(xintercept = 1e+3)) + 
+  geom_vline(aes(xintercept = 1.2e+4)) + 
+  labs(x = "Distance to centre (m?)", y = "Change in income deprived proportion",
+       title = "Glasgow")
+
+
+# As above, but for Edinburgh
+simd_2011_reweighted  %>% ungroup() %>%  
+  left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
+  filter(nearest_centre == "Edinburgh") %>%
+  distinct() %>% 
+  mutate(prop_id = pop_incomedeprived / pop_workingage) %>% 
+  select(dz_2011, distance_to_centre, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  mutate(change = `2012` - `2004`) %>% 
+  ggplot(., aes(x = distance_to_centre, y = change)) + 
+  geom_point( alpha = 0.1) + 
+  scale_x_log10() + 
+  scale_y_continuous(limits = c(-1.0, 0.5)) +
+  stat_smooth() + 
+  geom_hline(aes(yintercept = 0), linetype = "dashed") + 
+  geom_vline(aes(xintercept = 1e+3)) + 
+  geom_vline(aes(xintercept = 1.2e+4)) + 
+  labs(x = "Distance to centre (m?)", y = "Change in income deprived proportion",
+       title = "Edinburgh")
+# Aberdeen
+simd_2011_reweighted  %>% ungroup() %>%  
+  left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
+  filter(nearest_centre == "Aberdeen") %>%
+  distinct() %>% 
+  mutate(prop_id = pop_incomedeprived / pop_workingage) %>% 
+  select(dz_2011, distance_to_centre, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  mutate(change = `2012` - `2004`) %>% 
+  ggplot(., aes(x = distance_to_centre, y = change)) + 
+  geom_point( alpha = 0.1) + 
+  scale_x_log10() + 
+  scale_y_continuous(limits = c(-1.0, 0.5)) +
+  stat_smooth() + 
+  geom_hline(aes(yintercept = 0), linetype = "dashed") + 
+  geom_vline(aes(xintercept = 1e+3)) + 
+  geom_vline(aes(xintercept = 1.2e+4)) + 
+  labs(x = "Distance to centre (m?)", y = "Change in income deprived proportion",
+       title = "Aberdeen")
+
+
+# Dundee 
+simd_2011_reweighted  %>% ungroup() %>%  
+  left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
+  filter(nearest_centre == "Dundee") %>%
+  distinct() %>% 
+  mutate(prop_id = pop_incomedeprived / pop_workingage) %>% 
+  select(dz_2011, distance_to_centre, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  mutate(change = `2012` - `2004`) %>% 
+  ggplot(., aes(x = distance_to_centre, y = change)) + 
+  geom_point( alpha = 0.1) + 
+  scale_x_log10() + 
+  scale_y_continuous(limits = c(-1.0, 0.5)) +
+  stat_smooth() + 
+  geom_hline(aes(yintercept = 0), linetype = "dashed") + 
+  geom_vline(aes(xintercept = 1e+3)) + 
+  geom_vline(aes(xintercept = 1.2e+4)) + 
+  labs(x = "Distance to centre (m?)", y = "Change in income deprived proportion",
+       title = "Dundee")
+
+# Inverness 
+simd_2011_reweighted  %>% ungroup() %>%  
+  left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
+  filter(nearest_centre == "Inverness") %>%
+  distinct() %>% 
+  mutate(prop_id = pop_incomedeprived / pop_workingage) %>% 
+  select(dz_2011, distance_to_centre, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  mutate(change = `2012` - `2004`) %>% 
+  ggplot(., aes(x = distance_to_centre, y = change)) + 
+  geom_point( alpha = 0.1) + 
+  scale_x_log10() + 
+  scale_y_continuous(limits = c(-1.0, 0.5)) +
+  stat_smooth() + 
+  geom_hline(aes(yintercept = 0), linetype = "dashed") + 
+  geom_vline(aes(xintercept = 1e+3)) + 
+  geom_vline(aes(xintercept = 1.2e+4)) + 
+  labs(x = "Distance to centre (m?)", y = "Change in income deprived proportion",
+       title = "Inverness")
 
 
 # 
