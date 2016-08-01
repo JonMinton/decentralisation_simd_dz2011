@@ -4,7 +4,7 @@ require(pacman)
 
 pacman::p_load(
   readr, readxl,
-  stringr, tidyr, dplyr, 
+  purrr, stringr, tidyr, dplyr, 
   rgeos,
   ggplot2,
   tmap
@@ -195,22 +195,61 @@ calc_distance_to_centres <- function(shp, code_centre){
 }
 
 
+
+# Classify which points are closest to which centres  ---------------------
+
+ttwa_centroids <- c(
+  Aberdeen = "S01000125",
+  Glasgow = "S01003358",
+  Edinburgh = "S01002131",
+  Dundee = "S01001101",
+  `Inverness and Dingwall` = "S01003853",
+  `Perth and Blairgowrie` = "S01005037",
+  `Stirling and Alloa` = "S01006120"
+)
+
+fn <- function(val, nm){
+  dz_2001 %>% 
+    calc_distance_to_centres(., val) %>% 
+    .[c(1, 5)] -> out 
+  names(out) <- c("datazone", nm)
+  out
+}
+
+# Find nearest centre and distance to nearest centre
+map2(ttwa_centroids, names(ttwa_centroids), fn) %>% 
+  reduce(., inner_join) %>% 
+  gather(place, distance, -datazone) %>%
+  arrange(datazone) %>% 
+  group_by(datazone) %>% 
+  mutate(min_distance = min(distance)) %>%
+  filter(distance == min_distance) %>% 
+  ungroup() %>% 
+  transmute(datazone, nearest_centre = place, distance_to_centre = distance) -> centre_distance
+
+# Check this works - plot distance to nearest centre
 dz_2001 %>% 
-  calc_distance_to_centres(., "S01003358") %>%  # Glasgow
-  append_data(dz_2001, ., key.shp = "zonecode", key.data = "dz", ignore.duplicates =T) %>% 
+  append_data(., centre_distance, key.shp = "zonecode", key.data = "datazone", ignore.duplicates =T) %>% 
   tm_shape(.) + 
   tm_polygons(
     col = "distance_to_centre", 
     border.alpha = 0.1
   )
 
-
-# For Glasgow, look at relationship between distance from Glasgow city centre and change in SIMD 
-
+# plot nearest centre
 dz_2001 %>% 
-  calc_distance_to_centres(., "S01003358") %>% 
-  select(datazone = dz, distance_to_centre) %>% 
-  right_join(simd_combined) %>% 
+  append_data(., centre_distance, key.shp = "zonecode", key.data = "datazone", ignore.duplicates = T) %>% 
+  tm_shape(.) + 
+  tm_polygons(col = "nearest_centre", border.alpha = 0)
+
+
+
+# Change in proportion income deprived compared with distance from city centre
+# for those datazones whose centres are closer to Glasgow than any other centre 
+simd_combined  %>% 
+  left_join(centre_distance) %>% 
+  filter(nearest_centre == "Glasgow") %>%
+  distinct() %>% 
   mutate(prop_id = pop_incomedeprived / pop_workingage) %>% 
   select(datazone, distance_to_centre, year, prop_id) %>% 
   spread(year, prop_id) %>% 
@@ -218,18 +257,19 @@ dz_2001 %>%
   ggplot(., aes(x = distance_to_centre, y = change)) + 
   geom_point( alpha = 0.1) + 
   scale_x_log10() + 
+  scale_y_continuous(limits = c(-1.0, 0.5)) +
   stat_smooth() + 
+  geom_hline(aes(yintercept = 0), linetype = "dashed") + 
   geom_vline(aes(xintercept = 1e+3)) + 
-  geom_vline(aes(xintercept = 1.2e+4))
+  geom_vline(aes(xintercept = 1.2e+4)) + 
+  labs(x = "Distance to centre (m?)", y = "Change in income deprived proportion",
+     title = "Glasgow")
 
-# So changes in the expected direction
 
-# Now for edinburgh
-
-dz_2001 %>% 
-  calc_distance_to_centres(., "S01002131") %>% 
-  select(datazone = dz, distance_to_centre) %>% 
-  right_join(simd_combined) %>% 
+# As above, but for Edinburgh
+simd_combined  %>% left_join(centre_distance) %>% 
+  filter(nearest_centre == "Edinburgh") %>%
+  distinct() %>% 
   mutate(prop_id = pop_incomedeprived / pop_workingage) %>% 
   select(datazone, distance_to_centre, year, prop_id) %>% 
   spread(year, prop_id) %>% 
@@ -237,34 +277,17 @@ dz_2001 %>%
   ggplot(., aes(x = distance_to_centre, y = change)) + 
   geom_point( alpha = 0.1) + 
   scale_x_log10() + 
-  stat_smooth()
-
-# Similar, but also slighter 
-
-
-# Now for Dundee
-
-
-dz_2001 %>% 
-  calc_distance_to_centres(., "S01001101") %>% 
-  select(datazone = dz, distance_to_centre) %>% 
-  right_join(simd_combined) %>% 
-  mutate(prop_id = pop_incomedeprived / pop_workingage) %>% 
-  select(datazone, distance_to_centre, year, prop_id) %>% 
-  spread(year, prop_id) %>% 
-  mutate(change = `2012` - `2004`) %>% 
-  ggplot(., aes(x = distance_to_centre, y = change)) + 
-  geom_point( alpha = 0.1) + 
-  scale_x_log10() + 
-  stat_smooth()
-
+  scale_y_continuous(limits = c(-1.0, 0.5)) +
+  stat_smooth() + 
+  geom_hline(aes(yintercept = 0), linetype = "dashed") + 
+  labs(x = "Distance to centre (m?)", y = "Change in income deprived proportion",
+       title = "Edinburgh")
 
 # Aberdeen
-
-dz_2001 %>% 
-  calc_distance_to_centres(., "S01000125") %>% 
-  select(datazone = dz, distance_to_centre) %>% 
-  right_join(simd_combined) %>% 
+simd_combined  %>% 
+  left_join(centre_distance) %>% 
+  filter(nearest_centre == "Aberdeen") %>%
+  distinct() %>% 
   mutate(prop_id = pop_incomedeprived / pop_workingage) %>% 
   select(datazone, distance_to_centre, year, prop_id) %>% 
   spread(year, prop_id) %>% 
@@ -272,12 +295,35 @@ dz_2001 %>%
   ggplot(., aes(x = distance_to_centre, y = change)) + 
   geom_point( alpha = 0.1) + 
   scale_x_log10() + 
-  stat_smooth()
+  scale_y_continuous(limits = c(-1.0, 0.5)) +
+  stat_smooth() + 
+  geom_hline(aes(yintercept = 0), linetype = "dashed") + 
+  geom_vline(aes(xintercept = 1e+3)) + 
+  geom_vline(aes(xintercept = 1.2e+4)) + 
+  labs(x = "Distance to centre (m?)", y = "Change in income deprived proportion",
+       title = "Aberdeen")
 
 
-
-# **********************************************
-# To do - identify centre closest to each point 
+# Dundee 
+# Aberdeen
+simd_combined  %>% 
+  left_join(centre_distance) %>% 
+  filter(nearest_centre == "Dundee") %>%
+  distinct() %>% 
+  mutate(prop_id = pop_incomedeprived / pop_workingage) %>% 
+  select(datazone, distance_to_centre, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  mutate(change = `2012` - `2004`) %>% 
+  ggplot(., aes(x = distance_to_centre, y = change)) + 
+  geom_point( alpha = 0.1) + 
+  scale_x_log10() + 
+  scale_y_continuous(limits = c(-1.0, 0.5)) +
+  stat_smooth() + 
+  geom_hline(aes(yintercept = 0), linetype = "dashed") + 
+  geom_vline(aes(xintercept = 1e+3)) + 
+  geom_vline(aes(xintercept = 1.2e+4)) + 
+  labs(x = "Distance to centre (m?)", y = "Change in income deprived proportion",
+       title = "Dundee")
 
 
 
