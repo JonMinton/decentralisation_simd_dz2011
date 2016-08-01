@@ -6,21 +6,52 @@ pacman::p_load(
   readr, readxl,
   purrr, stringr, tidyr, dplyr, 
   rgeos,
-  ggplot2,
+  ggplot2, cowplot,
   tmap
 )
 
+
+# Load SIMD scores --------------------------------------------------------
+
+
 simd_combined <- read_csv("data/simd/simd_combined.csv")
+
+
+#Tasks 
+# Visualise choropleth for 2001
+# Visualise choropleth for 2011 
+# Visualise cartogram for 2001
+# Visualise cartogram for 2011 
+
+# Visualise both boundary layers for 2001 and 2011 
+
+
+# Load shapefiles  --------------------------------------------------------
+
 
 # 2001 datazone shapefiles ------------------------------------------------
 
 
 dz_2001 <- read_shape(file = "shapefiles/scotland_2001_datazones/scotland_dz_2001.shp")
-
 # To visualise this
 dz_2001 %>% 
   tm_shape(.) + 
-  tm_borders()
+  tm_borders() -> dz_2001_map  
+# To see as interactive Leaflet display
+#tmap_leaflet(dz_2001_map)
+  
+# And for 2011 datazones
+dz_2011 <- read_shape(file = "shapefiles/SG_DataZoneBdry_2011/SG_DataZone_Bdry_2011.shp")
+dz_2011 %>% 
+  tm_shape(.) + 
+  tm_borders( lty="dashed") -> dz_2011_map
+# Interactive
+#tmap_leaflet(dz_2011_map)
+
+
+# Both combined
+#tmap_leaflet(dz_2001_map + dz_2011_map)
+
 
 # To show simd_scores 
 
@@ -34,39 +65,37 @@ simd_combined %>%
               ) %>% 
   tm_shape(.) + 
   tm_facets(ncol = 4) + 
-  tm_fill(col = c("2004", "2006", "2009", "2012")) -> simd_chor
+  tm_fill(col = c("2004", "2006", "2009", "2012")) -> simd_chor_dz2001
 
 
-  # Which of course says don't live in Glasgow...
-save_tmap(simd_chor, filename = "maps/simd_chor.png", width = 40, height = 15,
-          units = "cm", dpi = 300)
+#   # Which of course says don't live in Glasgow...
+# save_tmap(simd_chor_dz2001, filename = "maps/dz2001_simd_chor.png", width = 40, height = 15,
+#           units = "cm", dpi = 300)
 
 
-# Create cartograms 
+# # Create cartograms 
 
 dz_2001_cart <- read_shape(
   file = "shapefiles/scot_2001_dz_2012_pop/dz_cartogram.shp", 
-  current.projection = "longlat"
-  )
+  current.projection = "longlat")
 
-
-simd_combined %>% 
+simd_combined %>%
   select(datazone, year, simd_score) %>%
-  spread(year, simd_score) %>% 
+  spread(year, simd_score) %>%
   append_data(
     shp = dz_2001_cart, data = . ,
     key.shp = "zonecode", key.data = "datazone"
-  ) %>% 
-  tm_shape(.) + 
+  ) %>%
+  tm_shape(.) +
   tm_facets(ncol = 4) +
-  tm_fill(col = c("2004", "2006", "2009", "2012")) -> simd_cart
+  tm_fill(col = c("2004", "2006", "2009", "2012")) -> simd_cart_dz2001
 
-save_tmap(simd_cart, filename = "maps/simd_cart.png", width = 40, height = 15,
+save_tmap(simd_cart_dz2001, filename = "maps/dz2001_simd_cart.png", width = 40, height = 15,
           units = "cm", dpi = 300)
 
 
 
-# As before, but using proportino of working age population income deprived 
+# As before, but using proportion of working age population income deprived 
 
 simd_combined %>% 
   select(datazone,year, pop_workingage, pop_incomedeprived) %>% 
@@ -79,27 +108,27 @@ simd_combined %>%
   ) %>% 
   tm_shape(.) + 
   tm_facets(ncol = 4) +
-  tm_fill(col = c("2004", "2006", "2009", "2012")) -> id_chor
+  tm_fill(col = c("2004", "2006", "2009", "2012")) -> dz2001_id_chor
 
-save_tmap(id_chor, filename = "maps/incomedeprived_chor.png", width = 40, height = 15,
+save_tmap(dz2001_id_chor, filename = "maps/dz2001_incomedeprived_chor.png", width = 40, height = 15,
           units = "cm", dpi = 300)
 
 # Income deprived, cartogram
 
-simd_combined %>% 
-  select(datazone,year, pop_workingage, pop_incomedeprived) %>% 
-  mutate(prop_id = pop_incomedeprived/pop_workingage) %>% 
-  select(datazone, year, prop_id) %>% 
-  spread(key = year, value = prop_id) %>% 
+simd_combined %>%
+  select(datazone,year, pop_workingage, pop_incomedeprived) %>%
+  mutate(prop_id = pop_incomedeprived/pop_workingage) %>%
+  select(datazone, year, prop_id) %>%
+  spread(key = year, value = prop_id) %>%
   append_data(
     shp = dz_2001_cart, data = . ,
     key.shp = "zonecode", key.data = "datazone"
-  ) %>% 
-  tm_shape(.) + 
+  ) %>%
+  tm_shape(.) +
   tm_facets(ncol = 4) +
-  tm_fill(col = c("2004", "2006", "2009", "2012")) -> id_cart
+  tm_fill(col = c("2004", "2006", "2009", "2012")) -> dz2001_id_cart
 
-save_tmap(id_cart, filename = "maps/incomedeprived_cart.png", width = 40, height = 15,
+save_tmap(dz2001_id_cart, filename = "maps/dz2001_incomedeprived_cart.png", width = 40, height = 15,
           units = "cm", dpi = 300)
 
 
@@ -115,11 +144,30 @@ simd_combined %>%
     key.shp = "zonecode", key.data = "datazone"
   ) %>% 
   tm_shape(.) + 
-  tm_fill(col = "dif") -> simd_change_cart
+  tm_fill(col = "dif") -> simd_change_cart_dz2001
 
-save_tmap(simd_cart, filename = "maps/simd_change_cart.png", height = 30, width = 15,
+save_tmap(simd_change_cart_dz2001, filename = "maps/dz2001_simd_change_cart.png", height = 30, width = 15,
           units = "cm", dpi = 300)
 
+
+# Maps of change from 2004 to 2012 , proportion income deprived
+
+
+simd_combined %>% 
+  select(datazone, year, pop_incomedeprived, pop_workingage) %>%
+  mutate(prop_id = pop_incomedeprived/ pop_workingage) %>% 
+  select(datazone, year, prop_id) %>% 
+  spread(year, prop_id) %>%
+  mutate(dif = `2012` - `2004`) %>% 
+  append_data(
+    shp = dz_2001_cart, data = . ,
+    key.shp = "zonecode", key.data = "datazone"
+  ) %>% 
+  tm_shape(.) + 
+  tm_fill(col = "dif") -> id_change_cart_dz2001
+
+save_tmap(id_change_cart_dz2001, filename = "maps/dz2001_id_change_cart.png", height = 30, width = 15,
+          units = "cm", dpi = 300)
 
 
 
@@ -150,8 +198,8 @@ rm(tmp)
 # Map this 
 
 tm_shape(dz_2001) + 
-  tm_borders()  + 
-  tm_bubbles( col = "centre",colorNA = NULL, showNA =F)
+  tm_polygons("grey", border.alpha = 0)  + 
+  tm_bubbles( col = "centre",colorNA = NULL, showNA =F) -> centres_2001_bubble
 
 
 # And for the cartogram
@@ -165,7 +213,7 @@ rm(tmp)
 # Map this 
 
 tm_shape(dz_2001_cart) + 
-  tm_borders()  + 
+  tm_polygons("grey", border.alpha = 0)  + 
   tm_bubbles( col = "centre",colorNA = NULL, showNA =F)
 
 # # 2011 centroids
