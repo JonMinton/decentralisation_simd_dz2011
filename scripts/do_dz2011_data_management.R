@@ -26,6 +26,8 @@ lkup  %>%
 # Shapefile for 2011
 dz_2011 <- read_shape(file = "shapefiles/SG_DataZoneBdry_2011/SG_DataZone_Bdry_2011.shp")
 
+# Cartogram for 2011 
+dz_2011_cart <- read_shape(file = "shapefiles/dz_2011_cart/dz_2011_cart.shp", current.projection = "longlat")
 #qtm(dz_2011_shp)
 
 # 2011 centroids
