@@ -1,0 +1,13 @@
+base
+knitr
+pacman
+readr
+readxl
+purrr
+stringr
+tidyr
+dplyr
+rgeos
+ggplot2
+cowplot
+tmap

@@ -1,0 +1,179 @@
+---
+title: "Decentralisation of Poverty - Replication Analysis"
+author: "Jon Minton"
+date: "2 August 2016"
+output: html_document
+---
+
+```{r setup01, include=TRUE, echo = TRUE}
+rm(list = ls())
+# Code chunk example from http://stackoverflow.com/questions/24585254/working-with-knitr-using-subdirectories
+library(knitr)
+getwd()
+opts_knit$set(root.dir=normalizePath('../'))
+```
+
+```{r setup02, include = TRUE, cache = FALSE, echo = TRUE}
+getwd()
+require(pacman)
+
+pacman::p_load(
+  readr, readxl,
+  purrr, stringr, tidyr, dplyr,
+  rgeos,
+  ggplot2, cowplot,
+  tmap
+)
+
+
+ source("scripts/do_dz2011_data_management.R")
+ls()
+centre_distance
+
+
+
+```
+
+And now here is a third chunk to check 1) that the working directory has not been reset 
+ and 2) to see if the centre_distance object still exists 
+
+
+# Introduction
+
+Here is the contents of centre_distance
+
+
+## Background
+
+In 2014 Kavanagh, Lee & Pryce produced the AQMeN briefing report [Poverty in Suburbia: Has Glasgow gone the way of American cities?](http://www.research.ed.ac.uk/portal/files/18805757/RB5_poverty_suburbia.pdf). This paper argued that there has been a decentralisation of poverty in Glasgow between 2001 and 2011, and combined a Bayesian spatial statistics approach with the Relative Centralisation Index (RCI) in order to argue firstly that the spatial distribution of poverty has become less decentralised between the two periods, and secondly that the changes in RCE scores are statistically significant.
+The briefing paper defined 'poverty' in three ways, each relating to specific UK state benefit receipts for persons of working age:
+1. The proportion of local populations receiving Income Support (IS)
+2. The proportion of local populations receiving Incapacity Benefit (IB)
+3. The proportion of local populations receiving Jobseekers' Allowance (JSA)
+
+These analyses were expanded to the four major Scottish cities - Aberdeen, Dundee, Edinburgh and Glasgow - for a paper to appear in *Annals of the American Association of Geographers*. This paper calculated 95% credible intervals (CrIs) for the difference in RCI from 2001 to 2011 for each of the three measures, and each of the four cities, between 2001 and 2011. It found falls in RCI for each benefit type, and for all four cities, which were statistically significant.
+
+## Purpose
+
+The purposes of this briefing paper are two-fold:
+1. To reproduce the analysis in Kavanagh, Lee & Pryce 2016 using the proportion of the population 'income deprived' between 2004 and 2016, using Scottish Index of Multiple Deprivation (SIMD) definitions of income deprivation. This will allow the dependence of Kavanagh, Lee & Pryce's conclusions on the measures and time periods used to be assessed.
+2. To use descriptive statistics and data visualisation to better understand the contribution of both changes in the numerators (population counts 'in poverty') and changes in denominators (total population counts) to overall falls in RCI.
+
+
+# Data and methods
+
+## Data
+
+The SIMD is ...
+SIMD data releases for 2004, 2006, 2012 and 2016 were downloaded from the [SIMD website](http://www.gov.scot/Topics/Statistics/SIMD/DataAnalysis). The total population counts, and the population count of the subpopulation defined as 'income deprived', were extracted from each release and combined in a single dataset.
+
+
+## Methods
+
+Producing the results involved doing the following:
+* Defining centroids for each place.
+* Identifying the closest centroid for each datazone.
+* Reweighting income deprived and total population counts from the SIMD, released at 2001 datazones, onto 2011 datazones.
+* etc
+* etc
+
+
+### Calculating nearest centres
+
+The following definitions of city centres were used
+
+Place                 |   2011 Datazone   |  Postcode    |  Description
+-------------------   |   -------------   |  ----------- |  -----------
+Aberdeen              |   S01006646       |  AB10 1AN    |  Shoe Lane
+Glasgow               |   S01010265       |  G1 3BU      |  West End of George Square
+Edinburgh             |   S01008677       |  EH1 1BQ     |  31 Waverley Bridge
+Dundee                |   S01007705       |  DD1 2AJ     |  Commercial Street
+Inverness             |   S01010620       |  IV1 1HY     |  High Street/Castle Street
+Perth                 |   S01011939       |  PH2 8PA     |  South Street
+Falkirk and Stirling  |   S01013067       |  FK8 2LJ     |  Port Street
+
+Kavanagh, Lee & Pryce (2016) produced a sensitivity analysis to assess the dependence of their results on the choice of centre, indicating they were robust to this choice. Alternative datazone centres could be used to explore the effect of definition for these analyses too.
+
+
+### Linking 2001 to 2011 datazones
+
+Income deprived and total population counts were reweighted from 2001 to 2011 datazone boundaries using a lookup file developed by [Paul Norman](http://www.geog.leeds.ac.uk/people/p.norman). This allowed weights to be produced, based on census output area overlap, allowing weighted 2011 population count estimates to be produced from counts enumerated at 2001 datazone level, based on the the level of overlap between 2001 and 2011 datazones. Further details about the lookup file was produced are available from [Paul Norman](p.d.norman@leeds.ac.uk) and the code used to perform the reweighting is reproduced below.
+
+```{r 2011_reweight}
+lkup <-  read_csv("data/paul_norman_file/paul_norman_dz2011_table.csv")
+simd_combined <- read_csv("data/simd/simd_combined.csv")
+
+lkup
+
+simd_combined
+
+
+lkup  %>%
+  select(dz_2001, dz_2011)  %>%
+  arrange(dz_2001, dz_2011)  %>%
+  group_by(dz_2001, dz_2011)  %>%
+  tally  %>% # produce n, giving number of OAs which contain particular groupings of dz_2001 and dz_2011
+  arrange(dz_2011, dz_2001)  %>%
+  select(dz_2011, dz_2001, n)  %>%
+  group_by(dz_2011)   %>%
+  arrange(dz_2011, dz_2001) %>%
+  mutate(weight = n / sum(n)) -> weighting
+weighting
+
+weighting %>%  # Weighting by dz_2011
+  left_join(simd_combined, by = c("dz_2001" = "datazone"))  %>%
+  select(-simd_rank)  %>%  # Not meaningful to reweight rank
+  group_by(dz_2011, year) %>%
+  summarise_each( ~ sum(. * weight), 6:9) -> simd_2011_reweighted
+
+simd_2011_reweighted
+
+
+
+```
+
+# Results
+
+## Maps
+
+Below is a map of Scotland in which each datazone has been coloured according to the nearest centre.
+
+```{r show_map, eval = TRUE, echo = FALSE, cache = TRUE}
+dz_2011 %>%
+ append_data(., centre_distance, key.shp = "DataZone", key.data = "datazone", ignore.duplicates = T) %>%
+ tm_shape(.) +
+ tm_polygons(col = "nearest_centre", border.alpha = 0) -> map_nearest_centre
+
+map_nearest_centre
+
+```
+
+This map shows the proportion of the population who are classified as income deprived for each SIMD
+```{r show_id_map, echo = FALSE}
+simd_2011_reweighted %>% 
+  select(dz_2011, year, pop_incomedeprived, pop_total) %>%
+  mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+  select(dz_2011, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  append_data(
+    shp = dz_2011, data = . ,
+    key.shp = "DataZone", key.data = "dz_2011", ignore.na = T
+  ) %>% 
+  tm_shape(.) + 
+  tm_facets(ncol = 4) + 
+  tm_fill(col = c("2004", "2006", "2009", "2012")) 
+
+```
+
+
+# Discussion
+
+## Substantive Findings
+
+## Limitations and recommendations for further research
+
+Alternative methods of reweighting SIMD values released at 2001 datazone levels could be explored, including those which make use of more sophisticated GIS-based methods to apportion values to 2011 datazones, and of approaches which use SIMD component values available at a higher level of spatial disaggregation (e.g. output areas) to recalculate and reapportion SIMD scores to 2011 datazone geographies. As with all analyses, the additional benefit of alternative and more sophisticated approaches should be weighted against the additional time cost involved, and a judgement made about whether the ratio of marginal benefits to marginal costs represents a cost effective use of researcher time.
+
+The robustness of the results to the choice of city centre could be explored in a sensitivity analysis.
+
+
