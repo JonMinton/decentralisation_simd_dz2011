@@ -81,24 +81,25 @@ decent_plot_for_city <- function(this_city){
     spread(year, prop_id) %>% 
     mutate(change = `2012` - `2004`) %>% 
     ggplot(., aes(x = distance_to_centre, y = change)) + 
-    geom_point( alpha = 0.1) + 
-    
-    scale_x_log10(breaks = c(0.5, 1, 2, 5, 10, 20, 50, 100)) + 
-    scale_y_continuous(limits = c(-1.0, 0.5) ) +
+    geom_point( alpha = 0.01) + 
+    scale_x_log10(limits = c(0.5, 50), breaks = c(0.5, 1, 2, 5, 10, 20, 50)) + 
+    scale_y_continuous(limits = c(-0.25, 0.25) ) +
     stat_smooth() + 
     geom_hline(aes(yintercept = 0), linetype = "dashed") + 
     geom_vline(aes(xintercept = 1e+0)) + 
     geom_vline(aes(xintercept = 1.2e+1)) + 
-    labs(x = "Distance to centre (km)", y = "Change in income deprived proportion",
+    labs(x = "Distance to centre (km)", y = "Change in ID",
          title = this_city)
 }
 
-decent_plot_for_city("Aberdeen")
-decent_plot_for_city("Dundee")
-decent_plot_for_city("Edinburgh")
-decent_plot_for_city("Glasgow")
 
-
+plot_grid(
+  decent_plot_for_city("Aberdeen"),
+  decent_plot_for_city("Dundee"),
+  decent_plot_for_city("Edinburgh"),
+  decent_plot_for_city("Glasgow"),
+  nrow = 2
+)
 # Change in population size 
 
 popchange_plot_for_city <- function(this_city){
@@ -160,10 +161,6 @@ idpopchange_plot_for_city("Glasgow")
 
 source("scripts/produce_dz2011_regression_bubble.R")
 
-simple_results %>% 
-  ggplot(., aes(y = place, group = type, x = estimate, shape = type)) + 
-  geom_point() +   
-  geom_vline(aes(xintercept = 0), linetype = "dashed")
 
 # As a scatterplot?
 

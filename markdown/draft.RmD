@@ -5,48 +5,43 @@ date: "2 August 2016"
 output: html_document
 ---
 
-```{r setup01, include=TRUE, echo = TRUE}
+```{r setup01, include=TRUE, echo = FALSE, message = FALSE, warning = FALSE}
 rm(list = ls())
 # Code chunk example from http://stackoverflow.com/questions/24585254/working-with-knitr-using-subdirectories
 library(knitr)
-getwd()
+
 opts_knit$set(root.dir=normalizePath('../'))
 ```
 
-```{r setup02, include = TRUE, cache = FALSE, echo = TRUE}
-getwd()
+```{r setup02, include = TRUE, cache = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+
 require(pacman)
 
 pacman::p_load(
   readr, readxl,
   purrr, stringr, tidyr, dplyr,
+  broom,
   rgeos,
   ggplot2, cowplot,
-  tmap
+  tmap, RColorBrewer
 )
 
 
- source("scripts/do_dz2011_data_management.R")
-ls()
-centre_distance
-
+source("scripts/do_dz2011_data_management.R")
 
 
 ```
 
-And now here is a third chunk to check 1) that the working directory has not been reset 
- and 2) to see if the centre_distance object still exists 
-
 
 # Introduction
 
-Here is the contents of centre_distance
-
+This is the introduction section to the report. 
 
 ## Background
 
 In 2014 Kavanagh, Lee & Pryce produced the AQMeN briefing report [Poverty in Suburbia: Has Glasgow gone the way of American cities?](http://www.research.ed.ac.uk/portal/files/18805757/RB5_poverty_suburbia.pdf). This paper argued that there has been a decentralisation of poverty in Glasgow between 2001 and 2011, and combined a Bayesian spatial statistics approach with the Relative Centralisation Index (RCI) in order to argue firstly that the spatial distribution of poverty has become less decentralised between the two periods, and secondly that the changes in RCE scores are statistically significant.
 The briefing paper defined 'poverty' in three ways, each relating to specific UK state benefit receipts for persons of working age:
+
 1. The proportion of local populations receiving Income Support (IS)
 2. The proportion of local populations receiving Incapacity Benefit (IB)
 3. The proportion of local populations receiving Jobseekers' Allowance (JSA)
@@ -56,6 +51,7 @@ These analyses were expanded to the four major Scottish cities - Aberdeen, Dunde
 ## Purpose
 
 The purposes of this briefing paper are two-fold:
+
 1. To reproduce the analysis in Kavanagh, Lee & Pryce 2016 using the proportion of the population 'income deprived' between 2004 and 2016, using Scottish Index of Multiple Deprivation (SIMD) definitions of income deprivation. This will allow the dependence of Kavanagh, Lee & Pryce's conclusions on the measures and time periods used to be assessed.
 2. To use descriptive statistics and data visualisation to better understand the contribution of both changes in the numerators (population counts 'in poverty') and changes in denominators (total population counts) to overall falls in RCI.
 
@@ -64,8 +60,8 @@ The purposes of this briefing paper are two-fold:
 
 ## Data
 
-The SIMD is ...
-SIMD data releases for 2004, 2006, 2012 and 2016 were downloaded from the [SIMD website](http://www.gov.scot/Topics/Statistics/SIMD/DataAnalysis). The total population counts, and the population count of the subpopulation defined as 'income deprived', were extracted from each release and combined in a single dataset.
+The SIMD is used by the Scottish Government to identify places suffering from deprivation. Different editions of the SIMD have been produced in 2004, 2006, 2012, with a new release scheduled for August 2016, and made available at the small area known as the datazone, equivalent to the Lower Super Output Area (LSOA) in England & Wales. The methodology differs slightly from one edition to the next, but for all releases estimates of the number of individuals within each datazone who are 'income deprived', as well as overall and domain-specific scores and rankings for deprivation. The definition of 'income deprived' varies between household types and age groups, to account for the different needs of different demographic groups and the efficiency gains associated with living in multi-person rather than single person households. 
+SIMD data releases for 2004, 2006, 2012 and 2016 were downloaded from the [SIMD website](http://www.gov.scot/Topics/Statistics/SIMD/DataAnalysis). The total population counts, and the population count of the subpopulation defined as 'income deprived', were extracted from each release and combined in a single dataset. The 'income deprived' and 'total' population counts were the focus of this report as the RCI measure, like many other segregation measures, involves comparing two mutually exclusive groups. 
 
 
 ## Methods
@@ -94,10 +90,375 @@ Falkirk and Stirling  |   S01013067       |  FK8 2LJ     |  Port Street
 
 Kavanagh, Lee & Pryce (2016) produced a sensitivity analysis to assess the dependence of their results on the choice of centre, indicating they were robust to this choice. Alternative datazone centres could be used to explore the effect of definition for these analyses too.
 
+The majority of the results presented will be for the four cities Aberdeen, Dundee, Edinburgh and Glasgow, as these are the largest and most centralised of the areas considered. Within this Glasgow is historically the most populous, has the highest population density, and has the highest concentration of deprived areas. 
+
 
 ### Linking 2001 to 2011 datazones
 
 Income deprived and total population counts were reweighted from 2001 to 2011 datazone boundaries using a lookup file developed by [Paul Norman](http://www.geog.leeds.ac.uk/people/p.norman). This allowed weights to be produced, based on census output area overlap, allowing weighted 2011 population count estimates to be produced from counts enumerated at 2001 datazone level, based on the the level of overlap between 2001 and 2011 datazones. Further details about the lookup file was produced are available from [Paul Norman](p.d.norman@leeds.ac.uk) and the code used to perform the reweighting is reproduced below.
+
+# Results
+
+## Maps
+
+Below is a map of Scotland in which each datazone has been coloured according to the nearest centre.
+
+```{r show_map, eval = TRUE, echo = FALSE, cache = FALSE, message = FALSE, warning = FALSE}
+dz_2011 %>%
+ append_data(., centre_distance, key.shp = "DataZone", key.data = "datazone", ignore.duplicates = T) %>%
+ tm_shape(.) +
+ tm_polygons(col = "nearest_centre", border.alpha = 0) -> map_nearest_centre
+
+map_nearest_centre
+
+```
+
+As this map indicates places in the Orkney and Shetland Islands, and elsewhere in the remote and rural highlands and islands, are arbitrily assigned to either Aberdeen or Inverness, even though they are not part of any meaningful functional urban geography. However these are easily identifiable through their absolute distance from either centre, and are not part of the main analysis.
+
+
+The following map shows the proportion of the population who are classified as income deprived for each datazone, in the years 2004, 2006, 2009 and 2012. Given that so much of Scotland is rural, few areas appear income deprived using a standard choropleth. However, patterns of high income deprivation are apparent in and near Glasgow.
+
+```{r show_id_map, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+simd_2011_reweighted %>% 
+  select(dz_2011, year, pop_incomedeprived, pop_total) %>%
+  mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+  mutate(prop_id = ifelse(prop_id > 0.5, 0.5, prop_id)) %>% 
+  select(dz_2011, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  append_data(
+    shp = dz_2011, data = . ,
+    key.shp = "DataZone", key.data = "dz_2011", ignore.na = T
+  ) %>% 
+  tm_shape(.) + 
+  tm_facets(ncol = 2) + 
+  tm_fill(
+    col = c("2004", "2006", "2009", "2012"), 
+    palette = brewer.pal(10, "Spectral"), 
+    breaks = seq(0, 0.5, by = 0.05), showNA = F
+    ) -> id_chor_dz2011
+
+id_chor_dz2011
+```
+
+The map below focuses in on income deprivation within Glasgow, and in particular within datazones not more than 15 km from Glasgow city centre. 
+
+```{r show_id_map_glasgow, echo = F, eval = T, message = FALSE, warning = FALSE}
+
+simd_2011_reweighted %>% 
+  select(dz_2011, year, pop_incomedeprived, pop_total) %>%
+  mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+  mutate(prop_id = ifelse(prop_id > 0.5, 0.5, prop_id)) %>% 
+  select(dz_2011, year, prop_id) %>% 
+  left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
+  filter(nearest_centre == "Glasgow") %>% 
+  filter(distance_to_centre < 15000) %>% 
+  select(dz_2011, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  append_data(
+    shp = dz_2011, data = . ,
+    key.shp = "DataZone", key.data = "dz_2011", ignore.na = T
+  ) -> shp_jn 
+
+shp_jn <- shp_jn[!is.na(shp_jn$`2004`), ]
+shp_jn %>% 
+  tm_shape(.) + 
+  tm_facets(ncol = 2) + 
+  tm_fill(
+    col = c("2004", "2006", "2009", "2012"), 
+    palette = brewer.pal(10, "Spectral"), 
+    breaks = seq(0, 0.5, by = 0.05), showNA = F
+    ) +
+  tm_legend(legend.show = F) -> id_chor_dz2011_glasgow
+
+id_chor_dz2011_glasgow
+
+```
+
+From this map there are suggestions of a decentralisation of poverty, at least as defined as income deprived, in particular between 2009 and 2012. However there are also clear pockets of areas, in the south, east and north west of Glasgow city, with persistently high levels of income deprivation. 
+
+An equivalent map for Edinburgh is produced below:
+
+```{r show_id_map_edinburgh, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+
+simd_2011_reweighted %>% 
+  select(dz_2011, year, pop_incomedeprived, pop_total) %>%
+  mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+  mutate(prop_id = ifelse(prop_id > 0.5, 0.5, prop_id)) %>% 
+  select(dz_2011, year, prop_id) %>% 
+  left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
+  filter(nearest_centre == "Edinburgh") %>% 
+  filter(distance_to_centre < 15000) %>% 
+  select(dz_2011, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  append_data(
+    shp = dz_2011, data = . ,
+    key.shp = "DataZone", key.data = "dz_2011", ignore.na = T
+  ) -> shp_jn 
+
+shp_jn <- shp_jn[!is.na(shp_jn$`2004`), ]
+shp_jn %>% 
+  tm_shape(.) + 
+  tm_facets(ncol = 2) + 
+  tm_fill(
+    col = c("2004", "2006", "2009", "2012"), 
+    palette = brewer.pal(10, "Spectral"), 
+    breaks = seq(0, 0.5, by = 0.05), showNA = F
+    ) +
+  tm_legend(legend.show = F) -> id_chor_dz2011_edinburgh
+
+id_chor_dz2011_edinburgh
+
+```
+
+This map also suggests that, as in Glasgow, drivers of increasing levels of decentralisation of poverty in Edinburgh include both rapid falls in poverty in the centre, alongside some more suburban areas with persistently high levels of poverty. In Edinburgh's case, in pockets towards the West, North West, and South/South East of the city centre. 
+
+The equivalent map for Dundee is shown below:
+
+```{r show_id_map_dundee, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+
+simd_2011_reweighted %>% 
+  select(dz_2011, year, pop_incomedeprived, pop_total) %>%
+  mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+  mutate(prop_id = ifelse(prop_id > 0.5, 0.5, prop_id)) %>% 
+  select(dz_2011, year, prop_id) %>% 
+  left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
+  filter(nearest_centre == "Dundee") %>% 
+  filter(distance_to_centre < 15000) %>% 
+  select(dz_2011, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  append_data(
+    shp = dz_2011, data = . ,
+    key.shp = "DataZone", key.data = "dz_2011", ignore.na = T
+  ) -> shp_jn 
+
+shp_jn <- shp_jn[!is.na(shp_jn$`2004`), ]
+shp_jn %>% 
+  tm_shape(.) + 
+  tm_facets(ncol = 2) + 
+  tm_fill(
+    col = c("2004", "2006", "2009", "2012"), 
+    palette = brewer.pal(10, "Spectral"), 
+    breaks = seq(0, 0.5, by = 0.05), showNA = F
+    ) +
+  tm_legend(legend.show = F) -> id_chor_dz2011_dundee
+
+id_chor_dz2011_dundee
+
+```
+
+Within Dundee the patterns of spatial persistence of poverty appear most consistent over time, with a clearer demarcation between urban and non-urban areas. The functional urban geography of Dundee appears more spatially concentrated than for Glasgow and Edinburgh. 
+
+The equivalent map for Aberdeen, historically the most affluent and rural of the four cities, is shown here: 
+
+```{r show_id_map_aberdeen, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+
+simd_2011_reweighted %>% 
+  select(dz_2011, year, pop_incomedeprived, pop_total) %>%
+  mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+  mutate(prop_id = ifelse(prop_id > 0.5, 0.5, prop_id)) %>% 
+  select(dz_2011, year, prop_id) %>% 
+  left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
+  filter(nearest_centre == "Aberdeen") %>% 
+  filter(distance_to_centre < 15000) %>% 
+  select(dz_2011, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  append_data(
+    shp = dz_2011, data = . ,
+    key.shp = "DataZone", key.data = "dz_2011", ignore.na = T
+  ) -> shp_jn 
+
+shp_jn <- shp_jn[!is.na(shp_jn$`2004`), ]
+shp_jn %>% 
+  tm_shape(.) + 
+  tm_facets(ncol = 2) + 
+  tm_fill(
+    col = c("2004", "2006", "2009", "2012"), 
+    palette = brewer.pal(10, "Spectral"), 
+    breaks = seq(0, 0.5, by = 0.05), showNA = F
+    ) +
+  tm_legend(legend.show = F) -> id_chor_dz2011_aberdeen
+
+id_chor_dz2011_aberdeen
+
+```
+
+As with Glasgow and Edinburgh, it appears both that the greatest changes have occurred between 2009 and 2012, and also that any fall in RCI scores are likely due to persistence of poverty in some local areas, with a high income deprivation area clearly visible in all years to the north west of the city centre.  
+
+
+## Plots of the distance/deprivation relationship 
+
+In the figure below, the vertical axis shows the proportion change in income deprivation from 2004 to 2012, and the horizontal axis shows the distance of datazones from the city centres, plotted on a log scale, for each of the four main Scottish cities. Individual datazones are indicated with faint circles, and a nonlinear smoother has been added showing how this the change in income deprivation varies as a function of distance. A dashed horizontal line has been added indicating no change in deprivation between the two period, and vertical lines added at 1km and 12km, as below 1km there are few observations, and above 12km the effect of a functional urban geography appears small. 
+
+```{r show_change_in_id, eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+decent_plot_for_city <- function(this_city){
+  simd_2011_reweighted  %>% 
+    ungroup() %>%  
+    left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
+    filter(nearest_centre == this_city) %>%
+    distinct() %>% 
+    mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+    select(dz_2011, distance_to_centre, year, prop_id) %>% 
+    mutate(distance_to_centre = distance_to_centre / 1000) %>% 
+    spread(year, prop_id) %>% 
+    mutate(change = `2012` - `2004`) %>% 
+    ggplot(., aes(x = distance_to_centre, y = change)) + 
+    geom_point( alpha = 0.01) + 
+    scale_x_log10(limits = c(0.5, 50), breaks = c(0.5, 1, 2, 5, 10, 20, 50)) + 
+    scale_y_continuous(limits = c(-0.25, 0.25) ) +
+    stat_smooth() + 
+    geom_hline(aes(yintercept = 0), linetype = "dashed") + 
+    geom_vline(aes(xintercept = 1e+0)) + 
+    geom_vline(aes(xintercept = 1.2e+1)) + 
+    labs(x = "Distance to centre (km)", y = "Change in ID",
+         title = this_city)
+}
+
+
+plot_grid(
+  decent_plot_for_city("Aberdeen"),
+  decent_plot_for_city("Dundee"),
+  decent_plot_for_city("Edinburgh"),
+  decent_plot_for_city("Glasgow"),
+  nrow = 2
+)
+
+
+```
+
+
+These plots suggest a qualitatively similar relationship between change in deprivation and distance, up to around 12km from city centre, for Aberdeen, Edinburgh and Glasgow, with Glasgow showing the strongest gradient of change between these two periods. Dundee shows a simpilar kind of relationship, but concentrated within the first 5km, rather than 12km, of distance from city centre. This is consistent with the maps of income deprivation in Dundee, showing much greater levels of spatial concentration than for the other cities. 
+
+
+### Numerator and denominator changes 
+
+The falls in income deprivation nearer city centres are a function both of changing numerators - i.e. changes to income deprived population sizes - and changing denominators - i.e. changes to total population sizes. To gain a better understanding of the relative influence of these two changes to the relationship shown in the previous figure, the next two figures show the proportionate change from 2004 to 2012 in income deprived populations, and total populations. 
+
+The next figure shows how the income deprived population has changed between the two periods.
+
+
+```{r plot_changeidpop, eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+idpopchange_plot_for_city <- function(this_city){
+  simd_2011_reweighted  %>% 
+    ungroup() %>%  
+    left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
+    filter(nearest_centre == this_city) %>%
+    distinct() %>% 
+    select(dz_2011, distance_to_centre, year, pop_incomedeprived) %>% 
+    mutate(distance_to_centre = distance_to_centre / 1000) %>% 
+    spread(year, pop_incomedeprived) %>% 
+    mutate(change = (`2012` / `2004`) - 1) %>% 
+    ggplot(., aes(x = distance_to_centre, y = change)) + 
+    geom_point( alpha = 0.01) + 
+    scale_x_log10(limits = c(0.5, 50), breaks = c(0.5, 1, 2, 5, 10, 20, 50)) + 
+    scale_y_continuous(limits = c(-.5, .5)) +    
+    stat_smooth() + 
+    geom_vline(aes(xintercept = 1e+0)) + 
+    geom_vline(aes(xintercept = 1.2e+1)) +
+    geom_hline(aes(yintercept = 0), linetype = "dashed") + 
+    labs(x = "Distance to centre (km)", y = "Change in ID pop",
+         title = this_city)
+}
+
+plot_grid(
+  idpopchange_plot_for_city("Aberdeen"),
+  idpopchange_plot_for_city("Dundee"),
+  idpopchange_plot_for_city("Edinburgh"),
+  idpopchange_plot_for_city("Glasgow"),
+  nrow = 2
+)
+```
+
+This plot indicates proportionate falls in the ID population shares at distances closes to the city centre, up to around 20% in Aberdeen and Glasgow, and either proportionate rises (Dundee and Edinburgh) or little change in proportions (Aberdeen and Glasgow) at greater distance from the city centre. This seems to suggest, for Aberdeen and Glasgow in particular, that 'gentrification of the centre' could be as much or more of an explanation for falls in RCI as 'impoverishment of the periphery', though that there are somewhat different socioeconomic mechanisms in place for the four cities.
+
+The following plot shows the change in the total population size as a function of distance from city centre. (The smoother line at distances less than 1km should likely be ignored for most cities as it involves extrapolation based on very few observations). 
+```{r plot_changetotalpop, eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+totalpopchange_plot_for_city <- function(this_city){
+  simd_2011_reweighted  %>% 
+    ungroup() %>%  
+    left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
+    filter(nearest_centre == this_city) %>%
+    distinct() %>% 
+    select(dz_2011, distance_to_centre, year, pop_total) %>% 
+    mutate(distance_to_centre = distance_to_centre / 1000) %>% 
+    spread(year, pop_total) %>% 
+    mutate(change = (`2012` / `2004`) - 1) %>% 
+    ggplot(., aes(x = distance_to_centre, y = change)) + 
+    geom_point( alpha = 0.01) + 
+    scale_x_log10(limits = c(0.5, 50), breaks = c(0.5, 1, 2, 5, 10, 20, 50)) + 
+    scale_y_continuous(limits = c(-.5, .5)) +    
+    stat_smooth() + 
+    geom_vline(aes(xintercept = 1e+0)) + 
+    geom_vline(aes(xintercept = 1.2e+1)) +
+    geom_hline(aes(yintercept = 0), linetype = "dashed") + 
+    labs(x = "Distance to centre (km)", y = "Change in total pop",
+         title = this_city)
+}
+
+plot_grid(
+  totalpopchange_plot_for_city("Aberdeen"),
+  totalpopchange_plot_for_city("Dundee"),
+  totalpopchange_plot_for_city("Edinburgh"),
+  totalpopchange_plot_for_city("Glasgow"),
+  nrow = 2
+)
+```
+This plot suggests that there have been substantial increases in population sizes in Aberdeen, Edimburgh and Glasgow over this period, in datazones closer to the city centre, with the greatest changes occurring near the centre of Glasgow. In Aberdeen, and to a lesser extent for Dundee, there have also been increases in population shares living at distances of 12km and more from the city, suggesting greatest consistency in population sizes at intermediate distances.
+
+
+The following plot attempts to summarise the previous series of results, in order the represent how both total population sizes and income deprived population sizes have changed with distance, and the overall strength of the relationship between income deprived population share and distance from city centre. 
+
+For each of the four cities, separate linear regressions were produced to extract the gradient of changes in total population size, income deprived population size, and changes in income deprived population shares with distance, over distances between 1km and 12km. The horizontal axis shows the gradient of change in total population with distance, the vertical axis shows graident of change in income deprived population with distance. Each city is represented by a separate point, labelled G for Glasgow, A for Aberdeen, D for Dundee and E for Edinburgh. The darkness of these symbols indicates the magnitude of the overall change in the income deprived population shares as a function of distance, with darker shades indicating a larger relationship and lighter shades a smaller relationship.
+
+
+```{r plot_all_bubble, eval = TRUE, echo = FALSE , message = FALSE, warning = FALSE}
+
+source("scripts/produce_dz2011_regression_bubble.R")
+
+
+# As a scatterplot?
+
+simple_results %>% 
+  mutate(place2 = str_sub(place, 1, 1)) %>% 
+  select(type, place2, estimate) %>% 
+  spread(type, estimate) %>% 
+  ggplot(., aes(x = denominator, y = numerator)) + 
+  geom_point(size = 10, colour = "lightblue") +
+  geom_text(aes(label = place2, alpha =  propid), show.legend = F) +
+  coord_cartesian(xlim = c(-0.1, 0.1), ylim = c(0.0, 0.1)) +
+  geom_hline(yintercept = 0, linetype = "dashed") + 
+  geom_vline(xintercept = 0, linetype = "dashed") + 
+  labs(x = "change in total population with distance", y = "change in income deprived population with distance")
+
+
+
+```
+
+## RCI calculations 
+
+This section will present the results of the RCI calculations, i.e. more formal attempt to replicate the results of Kavanagh, Pryce & Lee (2016) using a different indicator and data source. 
+
+
+# Discussion
+
+## Substantive Findings
+
+The apparent fall in income deprivation proportions in more central areas of cities, in particular Glasgow, and in particular the fact the fall appeared greatest between 2008 and 2012, suggests there may be issues with the way in which income deprivation has been defined, and how effectively or otherwise this connects to broader and alternative definitions of poverty other this period. Although the definition of income deprived is not completely consistent from one SIMD release to the next, they tend to be based on claims for particular types of state benefit. During the 2008 to 2012 period the level of conditionality associated with many benefits increased for people of working age, while at the same time the longest sustained fall and plateau in real wages in over half a century occurred. Unemployment rates did not rise as they had in previous recessions, but levels of self-employment, short-term contracts, and part time work all increased. The self-employed, in particular, are not eligible for many of the benefits that people earning low wages as employees receive, and so the fall the income deprivation may reflect this compositional change in the workforce. Similarly increasing casualisation of employment, with variable hours and pay from one week to the next, may put off many people earning low wages on average from applying for 'top up' benefits such as tax credits. Again, indications that there have been falls in Scotland in income deprivation between 2008 to 2012 suggest statistical artefacts. 
+
+
+
+## Limitations and recommendations for further research
+
+Alternative methods of reweighting SIMD values released at 2001 datazone levels could be explored, including those which make use of more sophisticated GIS-based methods to apportion values to 2011 datazones, and of approaches which use SIMD component values available at a higher level of spatial disaggregation (e.g. output areas) to recalculate and reapportion SIMD scores to 2011 datazone geographies. As with all analyses, the additional benefit of alternative and more sophisticated approaches should be weighted against the additional time cost involved, and a judgement made about whether the ratio of marginal benefits to marginal costs represents a cost effective use of researcher time.
+
+The robustness of the results to the choice of city centre could be explored in a sensitivity analysis.
+
+
+# Appendices 
+
+## Appendix A: Code for reweighting SIMD available for 2001 datazones onto 2011 datazones
+
+Within the script below, the object lkup is the lookup file produced by Paul Norman, and simd_combined contains data from the 2004, 2006, 2009, 2012 and 2016 releases of the SIMD.
+
 
 ```{r 2011_reweight}
 lkup <-  read_csv("data/paul_norman_file/paul_norman_dz2011_table.csv")
@@ -128,52 +489,6 @@ weighting %>%  # Weighting by dz_2011
 
 simd_2011_reweighted
 
-
-
 ```
-
-# Results
-
-## Maps
-
-Below is a map of Scotland in which each datazone has been coloured according to the nearest centre.
-
-```{r show_map, eval = TRUE, echo = FALSE, cache = TRUE}
-dz_2011 %>%
- append_data(., centre_distance, key.shp = "DataZone", key.data = "datazone", ignore.duplicates = T) %>%
- tm_shape(.) +
- tm_polygons(col = "nearest_centre", border.alpha = 0) -> map_nearest_centre
-
-map_nearest_centre
-
-```
-
-This map shows the proportion of the population who are classified as income deprived for each SIMD
-```{r show_id_map, echo = FALSE}
-simd_2011_reweighted %>% 
-  select(dz_2011, year, pop_incomedeprived, pop_total) %>%
-  mutate(prop_id = pop_incomedeprived / pop_total) %>% 
-  select(dz_2011, year, prop_id) %>% 
-  spread(year, prop_id) %>% 
-  append_data(
-    shp = dz_2011, data = . ,
-    key.shp = "DataZone", key.data = "dz_2011", ignore.na = T
-  ) %>% 
-  tm_shape(.) + 
-  tm_facets(ncol = 4) + 
-  tm_fill(col = c("2004", "2006", "2009", "2012")) 
-
-```
-
-
-# Discussion
-
-## Substantive Findings
-
-## Limitations and recommendations for further research
-
-Alternative methods of reweighting SIMD values released at 2001 datazone levels could be explored, including those which make use of more sophisticated GIS-based methods to apportion values to 2011 datazones, and of approaches which use SIMD component values available at a higher level of spatial disaggregation (e.g. output areas) to recalculate and reapportion SIMD scores to 2011 datazone geographies. As with all analyses, the additional benefit of alternative and more sophisticated approaches should be weighted against the additional time cost involved, and a judgement made about whether the ratio of marginal benefits to marginal costs represents a cost effective use of researcher time.
-
-The robustness of the results to the choice of city centre could be explored in a sensitivity analysis.
 
 
