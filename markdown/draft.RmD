@@ -1,7 +1,7 @@
 ---
 title: "Decentralisation of Poverty - Replication Analysis"
 author: "Jon Minton"
-date: "2 August 2016"
+date: "4 August 2016"
 output: html_document
 ---
 
@@ -31,6 +31,12 @@ source("scripts/do_dz2011_data_management.R")
 
 
 ```
+
+# Caveats 
+
+* Work very much in progress
+* Please don't steal 
+
 
 
 # Introduction
@@ -67,6 +73,7 @@ SIMD data releases for 2004, 2006, 2012 and 2016 were downloaded from the [SIMD 
 ## Methods
 
 Producing the results involved doing the following:
+
 * Defining centroids for each place.
 * Identifying the closest centroid for each datazone.
 * Reweighting income deprived and total population counts from the SIMD, released at 2001 datazones, onto 2011 datazones.
@@ -92,14 +99,8 @@ Kavanagh, Lee & Pryce (2016) produced a sensitivity analysis to assess the depen
 
 The majority of the results presented will be for the four cities Aberdeen, Dundee, Edinburgh and Glasgow, as these are the largest and most centralised of the areas considered. Within this Glasgow is historically the most populous, has the highest population density, and has the highest concentration of deprived areas. 
 
+### Apportioning nearest centre to datazones
 
-### Linking 2001 to 2011 datazones
-
-Income deprived and total population counts were reweighted from 2001 to 2011 datazone boundaries using a lookup file developed by [Paul Norman](http://www.geog.leeds.ac.uk/people/p.norman). This allowed weights to be produced, based on census output area overlap, allowing weighted 2011 population count estimates to be produced from counts enumerated at 2001 datazone level, based on the the level of overlap between 2001 and 2011 datazones. Further details about the lookup file was produced are available from [Paul Norman](p.d.norman@leeds.ac.uk) and the code used to perform the reweighting is reproduced below.
-
-# Results
-
-## Maps
 
 Below is a map of Scotland in which each datazone has been coloured according to the nearest centre.
 
@@ -114,6 +115,44 @@ map_nearest_centre
 ```
 
 As this map indicates places in the Orkney and Shetland Islands, and elsewhere in the remote and rural highlands and islands, are arbitrily assigned to either Aberdeen or Inverness, even though they are not part of any meaningful functional urban geography. However these are easily identifiable through their absolute distance from either centre, and are not part of the main analysis.
+
+
+
+### Linking 2001 to 2011 datazones
+
+Income deprived and total population counts were reweighted from 2001 to 2011 datazone boundaries using a lookup file developed by [Paul Norman](http://www.geog.leeds.ac.uk/people/p.norman). This allowed weights to be produced, based on census output area overlap, allowing weighted 2011 population count estimates to be produced from counts enumerated at 2001 datazone level, based on the the level of overlap between 2001 and 2011 datazones. Further details about the lookup file was produced are available from [Paul Norman](p.d.norman@leeds.ac.uk) and the code used to perform the reweighting is reproduced below.
+
+# Results
+
+
+## RCI calculations 
+
+This section will present the results of the RCI calculations, i.e. more formal attempt to replicate the results of Kavanagh, Pryce & Lee (2016) using a different indicator and data source. 
+
+For Glasgow, the RCI scores (with 95% credible intervals, CrIs) for 2004 and 2012, and for the difference between these two periods, are as follows:
+
+
+Quantile   | RCI, 2004 | RCI, 2012  | Change  
+---------- | --------  | ---------- | -------  
+median     | 0.144     | 0.093      | -0.051
+2.5% CrI   | 0.142     | 0.091      | -0.054
+97.5% CrI  | 0.146     | 0.095      | -0.048
+
+
+From this we can conclude that there has been a statistically significant fall in RCI over these two periods using the SIMD income deprivation measure, as there had been for out-of-work benefits-based measures for 2001 and 2011 in Kavanagh at al 2016. 
+
+As with Kavanagh et al 2016 Dissimilarity index scores (D) were also calculated for both periods, along with change between them. These are shown in the table below, and also show statistically significant falls.  
+
+Quantile   | D, 2004 | D, 2012  | Change  
+---------- | ------- | -------- | ------- 
+median     | 0.368   | 0.315    | -0.053
+2.5% CrI   | 0.366   | 0.313    | -0.056
+97.5% CrI  | 0.370   | 0.317    | -0.051 
+
+
+
+## Maps
+
 
 
 The following map shows the proportion of the population who are classified as income deprived for each datazone, in the years 2004, 2006, 2009 and 2012. Given that so much of Scotland is rural, few areas appear income deprived using a standard choropleth. However, patterns of high income deprivation are apparent in and near Glasgow.
@@ -285,6 +324,84 @@ id_chor_dz2011_aberdeen
 As with Glasgow and Edinburgh, it appears both that the greatest changes have occurred between 2009 and 2012, and also that any fall in RCI scores are likely due to persistence of poverty in some local areas, with a high income deprivation area clearly visible in all years to the north west of the city centre.  
 
 
+## Plotting temporal dependence
+
+The following plot shows scatterplots of the ID proportions in each Scottish datazone in 2004, 2009 and 2012. Within these plots the blue line indicates parity between values on the x and y axis, and the red dashed line shows a nonlinear smoother function between the two ID proportions being plotted, and hence the level of deviation between the actual relationship over the two years and parity. 
+```{r show_temporal_dep, echo = FALSE, warning = FALSE, EVAL = TRUE}
+
+simd_2011_reweighted %>% 
+  filter(year %in% c(2004, 2012)) %>% 
+  mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+  select(dz_2011, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  rename(prop_id_2004 = `2004`, prop_id_2012 = `2012`) %>% 
+  ggplot(., aes(x = prop_id_2004, y = prop_id_2012)) + 
+  geom_point(alpha = 0.1) + 
+  geom_abline(colour = "blue", slope = 1, intercept = 0) + 
+  stat_smooth(colour = "red", linetype = "dashed") + 
+  labs(
+    x = "ID prop, 2004", y = "ID prop, 2012",
+    title = "2012 against 2004"
+       ) -> s_04_12
+
+simd_2011_reweighted %>% 
+  filter(year %in% c(2004, 2006)) %>% 
+  mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+  select(dz_2011, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  rename(prop_id_2004 = `2004`, prop_id_2006 = `2006`) %>% 
+  ggplot(., aes(x = prop_id_2004, y = prop_id_2006)) + 
+  geom_point(alpha = 0.1) + 
+  geom_abline(colour = "blue", slope = 1, intercept = 0) + 
+  stat_smooth(colour = "red", linetype = "dashed") + 
+  labs(
+    x = "ID prop, 2004", y = "ID prop, 2006",
+    title = "2006 against 2004"
+       ) -> s_04_06
+
+
+simd_2011_reweighted %>% 
+  filter(year %in% c(2006, 2009)) %>% 
+  mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+  select(dz_2011, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  rename(prop_id_2006 = `2006`, prop_id_2009 = `2009`) %>% 
+  ggplot(., aes(x = prop_id_2006, y = prop_id_2009)) + 
+  geom_point(alpha = 0.1) + 
+  geom_abline(colour = "blue", slope = 1, intercept = 0) + 
+  stat_smooth(colour = "red", linetype = "dashed") + 
+  labs(
+    x = "ID prop, 2006", y = "ID prop, 2009",
+    title = "2009 against 2006"
+    ) -> s_06_09
+
+
+simd_2011_reweighted %>% 
+  filter(year %in% c(2009, 2012)) %>% 
+  mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+  select(dz_2011, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  rename(prop_id_2009 = `2009`, prop_id_2012 = `2012`) %>% 
+  ggplot(., aes(x = prop_id_2009, y = prop_id_2012)) + 
+  geom_point(alpha = 0.1) + 
+  geom_abline(colour = "blue", slope = 1, intercept = 0) + 
+  stat_smooth(colour = "red", linetype = "dashed") + 
+  labs(
+    x = "ID prop, 2009", y = "ID prop, 2012",
+    title = "2012 against 2009"
+  ) -> s_09_12
+
+plot_grid(s_04_12, s_04_06, s_06_09, s_09_12, nrow = 2)
+
+
+```
+
+There were indications in the maps above that the greatest changes occurred between the 2009 and 2012 SIMD releases, suggesting that the temporal association between 2004 and 2009 ID proportions would likely be strong compared with the temporal association between 2009 and 2012. 
+
+The first of the plots, 2004 compared with 2012, shows strong spatial dependence in areas with low to moderate ID proportions, but much less temporal dependence in areas with high ID proportions in 2004. The second subfigure plots 2004 against 2006 values, and shows a near linear temporal dependence for the complete range of 2004 values, with a global trend towards lower ID proportions throughout Scotland.  The temporal relationship between 2006 and 2009 starts to become nonlinear at the upper range of 2006 values, and this nonlinearity at the upper range becomes much stronger between 2009 and 2012. 
+
+These plots indicate a complex change in the temporal dependence of ID proportions, likely occurring over the period 2008 to 2012. SIMD 2016 values will be invaluable in indicating whether these changes have continued, altered or settled between 2012 and 2016.
+
 ## Plots of the distance/deprivation relationship 
 
 In the figure below, the vertical axis shows the proportion change in income deprivation from 2004 to 2012, and the horizontal axis shows the distance of datazones from the city centres, plotted on a log scale, for each of the four main Scottish cities. Individual datazones are indicated with faint circles, and a nonlinear smoother has been added showing how this the change in income deprivation varies as a function of distance. A dashed horizontal line has been added indicating no change in deprivation between the two period, and vertical lines added at 1km and 12km, as below 1km there are few observations, and above 12km the effect of a functional urban geography appears small. 
@@ -429,13 +546,8 @@ simple_results %>%
   geom_vline(xintercept = 0, linetype = "dashed") + 
   labs(x = "change in total population with distance", y = "change in income deprived population with distance")
 
-
-
 ```
 
-## RCI calculations 
-
-This section will present the results of the RCI calculations, i.e. more formal attempt to replicate the results of Kavanagh, Pryce & Lee (2016) using a different indicator and data source. 
 
 
 # Discussion

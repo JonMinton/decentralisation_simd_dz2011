@@ -3,5 +3,5 @@ account: rpubs
 server: rpubs.com
 appId: https://api.rpubs.com/api/v1/document/200186/416363becfea4336b2b981a7e1099ea4
 bundleId: https://api.rpubs.com/api/v1/document/200186/416363becfea4336b2b981a7e1099ea4
-url: http://rpubs.com/publish/claim/200186/a248923f615c4c5e9787fd28cdd28df9
-when: 1470240361.70201
+url: http://rpubs.com/JonMinton/200186
+when: 1470321779.09761

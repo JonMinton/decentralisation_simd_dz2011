@@ -4,14 +4,21 @@ require(pacman)
 
 pacman::p_load(
   readr, readxl,
-  purrr, stringr, tidyr, dplyr, 
-  broom,
-  rgeos,
-  ggplot2, cowplot,
-  tmap
+  purrr, Rcpp, MCMCpack,
+  stringr, tidyr, dplyr, broom,
+  rgeos, shapefiles, sp, spdep, truncdist,
+  maptools,   tmap,
+  ggplot2, cowplot, RColorBrewer
 )
 
+# My script
 source("scripts/do_dz2011_data_management.R")
+
+# Gavin's scripts
+source('scripts/from_gavin/RCI.R')
+source('scripts/from_gavin/binomial.MCARleroux.R')
+Rcpp::sourceCpp('scripts/from_gavin/aqmen.cpp')
+
 
 # Check this works - plot distance to nearest centre
 # dz_2011 %>% 
@@ -176,6 +183,291 @@ simple_results %>%
   geom_vline(xintercept = 0, linetype = "dashed") + 
   labs(x = "change in total population with distance", y = "change in income deprived population with distance")
 
+
+
+
+
+# Do RCI  -----------------------------------------------------------------
+
+# Tasks 
+
+# 1) Split Scotland up into four cities, dzs within 15km, for 2004 and 2012 
+# 2) produce spatial structure objects 
+
+
+# #### Compute the spatial autocorrelation using Moran's I
+# moran.mc(x=sheffield.map.final@data$prop.eu15.2001, listw=W.list.city, nsim=10000)
+# moran.mc(x=sheffield.map.final@data$prop.eu15.2011, listw=W.list.city, nsim=10000)
+# moran.mc(x=sheffield.map.final@data$prop.eu12.2011, listw=W.list.city, nsim=10000)
+
+#### The temporal dependence
+# plot(prop.eu15.2001, prop.eu15.2011, col="red", pch=19, xlab="2001", ylab="2011")
+# abline(0,1, col="blue")
+# cor.test(prop.eu15.2001,prop.eu15.2011)
+# 
+# simd_2011_reweighted %>% 
+#   filter(year %in% c(2004, 2012)) %>% 
+#   mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+#   select(dz_2011, year, prop_id) %>% 
+#   spread(year, prop_id) %>% 
+#   rename(prop_id_2004 = `2004`, prop_id_2012 = `2012`) %>% 
+#   ggplot(., aes(x = prop_id_2004, y = prop_id_2012)) + 
+#   geom_point(alpha = 0.1) + 
+#   geom_abline(colour = "blue", slope = 1, intercept = 0) + 
+#   stat_smooth(colour = "red", linetype = "dashed") + 
+#   labs(
+#     x = "ID prop, 2004", y = "ID prop, 2012",
+#     title = "2012 against 2004"
+#        ) -> s_04_12
+# 
+# simd_2011_reweighted %>% 
+#   filter(year %in% c(2004, 2009)) %>% 
+#   mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+#   select(dz_2011, year, prop_id) %>% 
+#   spread(year, prop_id) %>% 
+#   rename(prop_id_2004 = `2004`, prop_id_2009 = `2009`) %>% 
+#   ggplot(., aes(x = prop_id_2004, y = prop_id_2009)) + 
+#   geom_point(alpha = 0.1) + 
+#   geom_abline(colour = "blue", slope = 1, intercept = 0) + 
+#   stat_smooth(colour = "red", linetype = "dashed") + 
+#   labs(
+#     x = "ID prop, 2004", y = "ID prop, 2009",
+#     title = "2009 against 2004"
+#     ) -> s_04_09
+# 
+# 
+# simd_2011_reweighted %>% 
+#   filter(year %in% c(2009, 2012)) %>% 
+#   mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+#   select(dz_2011, year, prop_id) %>% 
+#   spread(year, prop_id) %>% 
+#   rename(prop_id_2009 = `2009`, prop_id_2012 = `2012`) %>% 
+#   ggplot(., aes(x = prop_id_2009, y = prop_id_2012)) + 
+#   geom_point(alpha = 0.1) + 
+#   geom_abline(colour = "blue", slope = 1, intercept = 0) + 
+#   stat_smooth(colour = "red", linetype = "dashed") + 
+#   labs(
+#     x = "ID prop, 2009", y = "ID prop, 2012",
+#     title = "2012 against 2009"
+#   ) -> s_09_12
+# 
+# plot_grid(s_04_12, s_04_09, s_09_12, nrow = 1)
+# 
+
+
+
+################################
+#### Fit the model
+################################
+#### MCMC quantities
+burnin <- 10000
+n.sample <- 20000
+thin <- 10
+n.keep <- (n.sample - burnin)/thin
+
+# Fit the model for Glasgow first 
+
+do_model <- function(place, initial_dist = 18000){
+  
+  this_dist <- initial_dist
+  has_islands <- T
+  
+  while(has_islands){
+    dz_2011  %>% 
+      append_data(
+        shp = . , data = centre_distance, 
+        key.shp = "DataZone", key.data = "datazone"
+      ) %>% 
+      .[.$nearest_centre == "Glasgow",] %>% 
+      .[.$distance_to_centre <= this_dist,] -> dz_city
+
+    w <-  poly2nb(dz_city)   
+    if (any(card(w) == 0)){
+        this_dist <- this_dist + 1000
+    } else {
+      has_islands <- F
+    }
+  }
+  
+  simd_2011_reweighted %>% 
+    filter(year %in% c(2004, 2012)) %>% 
+    select(dz_2011, year, pop_total, pop_incomedeprived) -> tmp
+  
+  tmp %>% 
+    select(-pop_incomedeprived) %>% 
+    mutate(year = paste0("pop_total_", year)) %>% 
+    spread(year, pop_total) -> pops
+  
+  tmp %>% 
+    select(-pop_total) %>% 
+    mutate(year = paste0("pop_id_", year)) %>% 
+    spread(year, pop_incomedeprived) -> incdeps
+  
+  popinc <- pops %>% inner_join(incdeps)
+  rm(tmp, pops, incdeps)
+  
+  
+  dz_city %>% 
+    append_data(
+      shp = ., data = popinc,
+      key.shp = "DataZone", key.data = "dz_2011",
+      ignore.na = T
+    ) %>% 
+    .[!is.na(.$pop_total_2004),] -> dz_city
+  
+  
+  w_nb <- poly2nb(dz_city)
+  # distance to allow the 'islands' to be included 
+  W_list <- nb2listw(W_nb, style = "B")
+  W <- nb2mat(W_nb, style = "B")
+  n <- nrow(W)
+  
+  # Need to remove unconnected datazones ('islands')
+  
+  
+  
+  #### Format the data
+  Y.mat <- cbind(
+    dz_city@data$pop_id_2004, 
+    dz_city@data$pop_id_2012 
+  )
+  Y <- as.integer(t(Y.mat)) # Noninteger values as reweighted
+  
+  N.mat <- cbind(
+    dz_city@data$pop_total_2004, 
+    dz_city@data$pop_total_2012 
+  )
+  N <- as.integer(t(N.mat)) # Noninteger values as reweighted
+  
+  #### Run the model
+  model <- binomial.MCARleroux(
+    formula=Y~1, trials=N, W=W, 
+    burnin=burnin, n.sample=n.sample, thin=thin
+  )
+  model$summary.results
+  
+  #### Compute the coordinates and ordering from the city centre
+  dist.order <- order(dz_city@data$distance_to_centre)
+  
+  #### Compute the global RCI and D
+  indicators.post <- array(NA, c(n.keep,4))
+  colnames(indicators.post) <- c("RCI2004", "RCI2012", "D2004", "D2012")
+  
+  all_2004 <- as.integer(N.mat[,1])
+  all_2012 <- as.integer(N.mat[,2])
+  for(i in 1:n.keep)
+  {
+    ## Compute the probability and fitted values for the ith posterior sample
+    logit <- model$samples$beta[i, ] + model$samples$phi[i, ]
+    prob <- exp(logit) / (1 + exp(logit))
+    prob.mat <- matrix(prob, nrow=n, byrow=TRUE)
+    fitted.mat <- N.mat * prob.mat
+    
+    ## Compute the RCI for both years
+    indicators.post[i, 1] <-RCI(fitted.mat[ ,1], as.integer(N.mat[,1]), dist.order)
+    indicators.post[i, 2] <-RCI(fitted.mat[ ,2], as.integer(N.mat[,2]), dist.order)
+    
+    ## Compute D for both years
+    p_2004 <- prob.mat[ ,1]
+    p_2004_av <- sum(p_2004 * all_2004) / sum(all_2004)
+    indicators.post[i, 3] <- sum(all_2004 * abs(p_2004 - p_2004_av)) / (2 * sum(all_2004) * p_2004_av * (1-p_2004_av))   
+    
+    p_2012 <- prob.mat[ ,2]
+    p_2012_av <- sum(p_2012 * all_2012) / sum(all_2012)
+    indicators.post[i, 4] <- sum(all_2012 * abs(p_2012 - p_2012_av)) / (2 * sum(all_2012) * p_2012_av * (1-p_2012_av))   
+  }
+  
+  indicators.post  
+}
+
+
+indicators_dundee <- do_model("Dundee")
+indicators_aberdeen <- do_model("Aberdeen")
+indicators_edinburgh <- do_model("Edinburgh")
+
+
+
+## Summarise the results
+## RCI and D in 2001 and 2011 - estimate and 95% Credible Interval
+round(apply(indicators.post, 2, quantile, c(0.5, 0.025, 0.975)),3)
+
+## Differences in RCI and D in 2011 - 2001
+round(quantile(indicators.post[ ,2] - indicators.post[ ,1], c(0.5, 0.025, 0.975)),3)
+round(quantile(indicators.post[ ,4] - indicators.post[ ,3], c(0.5, 0.025, 0.975)),3)
+
+
+
+
+
+# ##################################################
+# #### Compute the local RCI for each area and plot
+# ##################################################
+# fitted <- matrix(model$fitted.values, nrow=n.city, byrow=TRUE)
+# 
+# #use RCI path to calculate Local RCI for each k
+# K.range <- seq(10,n.city,10)
+# K.length <- length(K.range)
+# RCI.local.K <- array(NA, c(n.city,2,K.length))
+# rownames(RCI.local.K) <- sheffield.map$lsoa
+# 
+# for(k in 1:K.length) {
+#   for(i in 1:n.city)
+#   {
+#     ## Compute the ordering from the current DZ
+#     centre <- coords[i, ]
+#     dist.cc <- sqrt((coords[ ,1] - centre[1])^2 + (coords[ ,2] - centre[2])^2)
+#     dist.order <- order(dist.cc) 
+#     
+#     ## Compute the RCI
+#     RCI.local.K[i,1,k] <- RCI.path(fitted[ ,1], total2001, dist.order,K=K.range[k])
+#     RCI.local.K[i,2,k] <- RCI.path(fitted[ ,2], total2011, dist.order,K=K.range[k])
+#   }
+#   print(k)
+# }
+# 
+# ## summarise the median and 95% interval of local RCI for each area at each year
+# dim(RCI.local.K)
+# RCI.local.2001 <- apply(RCI.local.K[,1,],1,quantile,c(0.5,0.025,0.975))
+# RCI.local.2011 <- apply(RCI.local.K[,2,],1,quantile,c(0.5,0.025,0.975))
+# 
+# RCI.local.2001 <- t(RCI.local.2001)
+# RCI.local.2011 <- t(RCI.local.2011)
+# # the number of significant ones
+# sum(RCI.local.2001[,2]*RCI.local.2001[,3] > 0)
+# sum(RCI.local.2011[,2]*RCI.local.2011[,3] > 0)
+# 
+# sum(rownames(RCI.local.2001)==rownames(RCI.local.2011))
+# 
+# RCI.local <- cbind(RCI.local.2001,RCI.local.2011)
+# colnames(RCI.local) <- c("RCI.2001","lower.2001","upper.2001","RCI.2011","lower.2011","upper.2011")
+# RCI.local <- data.frame(RCI.local)
+# RCI.local$centralised2001 <- RCI.local$RCI.2001 > 0 & RCI.local$lower.2001*RCI.local$upper.2001 > 0
+# RCI.local$decetra2001 <- RCI.local$RCI.2001 < 0 & RCI.local$lower.2001*RCI.local$upper.2001 > 0
+# 
+# RCI.local$centralised2011 <- RCI.local$RCI.2011 > 0 & RCI.local$lower.2011*RCI.local$upper.2011 > 0
+# RCI.local$decetra2011 <- RCI.local$RCI.2011 < 0 & RCI.local$lower.2011*RCI.local$upper.2011 > 0
+# 
+# ## map the local RCI
+# sheffield.map@data <- data.frame(sheffield.map@data,RCI.local)
+# 
+# #year 2001
+# plot(sheffield.map)
+# plot(sheffield.map[sheffield.map$centralised2001==1,],col="red",add=TRUE,lwd=1.5)
+# plot(sheffield.map[sheffield.map$decetra2001==1,],col="green",add=TRUE,lwd=1.5)
+# #year 2011
+# plot(sheffield.map)
+# plot(sheffield.map[sheffield.map$centralised2011==1,],col="red",add=TRUE,lwd=1.5)
+# plot(sheffield.map[sheffield.map$decetra2011==1,],col="green",add=TRUE,lwd=1.5)
+# 
+# ## Map the local RCI
+# range <- quantile(c(min(sheffield.map$RCI.2001-0.01),max(sheffield.map$RCI.2011+0.01)), seq(0, 1, 0.1))
+# n.range <- length(range) - 1
+# spplot(sheffield.map,c("RCI.2001","RCI.2011"), 
+#        at=range, scales=list(draw=TRUE), xlab="Easting", names.attr=c("Local RCI 2001", "Local RCI 2011"),
+#        ylab="Northing", col.regions=hsv(0.7, seq(0.2,1,length.out=n.range),1), col="transparent")
+# 
+# 
+# writeOGR(sheffield.map,dsn=".",layer="sheffield.map",,driver="ESRI Shapefile")
 
 
 # 
