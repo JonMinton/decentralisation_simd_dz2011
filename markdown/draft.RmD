@@ -1,7 +1,7 @@
 ---
 title: "Decentralisation of Poverty - Replication Analysis"
 author: "Jon Minton"
-date: "4 August 2016"
+date: "5 August 2016"
 output: html_document
 ---
 
@@ -31,6 +31,21 @@ source("scripts/do_dz2011_data_management.R")
 
 
 ```
+
+
+```{r grab_posteriors, eval = TRUE, cache = FALSE, warning = FALSE, echo = FALSE}
+
+all_posteriors <- read_csv("data/all_posterior_draws.csv") # Results from running the many models
+
+all_posteriors  %>% 
+  group_by(place, measure, period)  %>% 
+  summarise(
+    lower = quantile(value, 0.025), 
+    median = quantile(value, 0.500), 
+    upper = quantile(value, 0.975)
+            ) -> posterior_summaries
+```
+
 
 # Caveats 
 
@@ -105,6 +120,8 @@ The majority of the results presented will be for the four cities Aberdeen, Dund
 Below is a map of Scotland in which each datazone has been coloured according to the nearest centre.
 
 ```{r show_map, eval = TRUE, echo = FALSE, cache = FALSE, message = FALSE, warning = FALSE}
+
+
 dz_2011 %>%
  append_data(., centre_distance, key.shp = "DataZone", key.data = "datazone", ignore.duplicates = T) %>%
  tm_shape(.) +
@@ -129,92 +146,136 @@ Income deprived and total population counts were reweighted from 2001 to 2011 da
 
 This section will present the results of the RCI calculations, i.e. more formal attempt to replicate the results of Kavanagh, Pryce & Lee (2016) using a different indicator and data source. 
 
-For Glasgow, the RCI scores (with 95% credible intervals, CrIs) for 2004 and 2012, and for the difference between these two periods, are as follows:
+
+### RCI, Aberdeen
+
+```{r, eval = TRUE, echo = FALSE, warning = FALSE, results = 'asis'}
+posterior_summaries %>% 
+  ungroup() %>% 
+  filter(place == "Aberdeen", measure == "RCI") %>% 
+  gather(key = "bound", value = "value", lower:upper) %>% 
+  select(period, bound, value) %>% 
+  mutate(value = round(value, 3)) %>% 
+  spread(bound, value) %>% 
+  select(period, median, lower, upper) %>% 
+  kable(., format = "markdown", caption = "RCI, Aberdeen")
+
+```
+
+### RCI, Dundee
+
+```{r, eval = TRUE, echo = FALSE, warning = FALSE, results = 'asis'}
+posterior_summaries %>% 
+  ungroup() %>% 
+  filter(place == "Dundee", measure == "RCI") %>% 
+  gather(key = "bound", value = "value", lower:upper) %>% 
+  select(period, bound, value) %>% 
+  mutate(value = round(value, 3)) %>% 
+  spread(bound, value) %>% 
+  select(period, median, lower, upper) %>% 
+  kable(., format = "markdown", caption = "RCI, Dundee")
+
+```
+
+### RCI, Edinburgh
+
+```{r, eval = TRUE, echo = FALSE, warning = FALSE, results = 'asis'}
+posterior_summaries %>% 
+  ungroup() %>% 
+  filter(place == "Edinburgh", measure == "RCI") %>% 
+  gather(key = "bound", value = "value", lower:upper) %>% 
+  select(period, bound, value) %>% 
+  mutate(value = round(value, 3)) %>% 
+  spread(bound, value) %>% 
+  select(period, median, lower, upper) %>% 
+  kable(., format = "markdown", caption = "RCI, Edinburgh")
+
+```
+
+### RCI, Glasgow
+
+```{r, eval = TRUE, echo = FALSE, warning = FALSE, results = 'asis'}
+posterior_summaries %>% 
+  ungroup() %>% 
+  filter(place == "Glasgow", measure == "RCI") %>% 
+  gather(key = "bound", value = "value", lower:upper) %>% 
+  select(period, bound, value) %>% 
+  mutate(value = round(value, 3)) %>% 
+  spread(bound, value) %>% 
+  select(period, median, lower, upper) %>% 
+  kable(., format = "markdown", caption = "RCI, Glasgow")
+
+```
 
 
-Quantile   | RCI, 2004 | RCI, 2012  | Change  
----------- | --------  | ---------- | -------  
-median     | 0.144     | 0.093      | -0.051
-2.5% CrI   | 0.142     | 0.091      | -0.054
-97.5% CrI  | 0.146     | 0.096      | -0.047
+## Dissimilarity calculations 
+
+This section will present the results of the Dissimilarity index calculations, using the Bayesian modelling approach used in Kavanagh et al 2016. 
 
 
-From this we can conclude that there has been a statistically significant fall in RCI over these two periods using the SIMD income deprivation measure, as there had been for out-of-work benefits-based measures for 2001 and 2011 in Kavanagh at al 2016. 
+### D, Aberdeen
 
-As with Kavanagh et al 2016 Dissimilarity index scores (D) were also calculated for both periods, along with change between them. These are shown in the table below, and also show statistically significant falls.  
+```{r, eval = TRUE, echo = FALSE, warning = FALSE, results = 'asis'}
+posterior_summaries %>% 
+  ungroup() %>% 
+  filter(place == "Aberdeen", measure == "D") %>% 
+  gather(key = "bound", value = "value", lower:upper) %>% 
+  select(period, bound, value) %>% 
+  mutate(value = round(value, 3)) %>% 
+  spread(bound, value) %>% 
+  select(period, median, lower, upper) %>% 
+  kable(., format = "markdown", caption = "D, Aberdeen")
 
-Quantile   | D, 2004 | D, 2012  | Change  
----------- | ------- | -------- | ------- 
-median     | 0.368   | 0.315    | -0.053
-2.5% CrI   | 0.366   | 0.313    | -0.056
-97.5% CrI  | 0.370   | 0.317    | -0.051 
+```
 
+### D, Dundee
 
-#### Dundee 
+```{r, eval = TRUE, echo = FALSE, warning = FALSE, results = 'asis'}
+posterior_summaries %>% 
+  ungroup() %>% 
+  filter(place == "Dundee", measure == "D") %>% 
+  gather(key = "bound", value = "value", lower:upper) %>% 
+  select(period, bound, value) %>% 
+  mutate(value = round(value, 3)) %>% 
+  spread(bound, value) %>% 
+  select(period, median, lower, upper) %>% 
+  kable(., format = "markdown", caption = "D, Dundee")
 
-Quantile   | RCI, 2004 | RCI, 2012  | Change  
----------- | --------  | ---------- | -------  
-median     | 0.304     | 0.256      | -0.048
-2.5% CrI   | 0.298     | 0.251      | -0.056
-97.5% CrI  | 0.309     | 0.262      | -0.040
+```
 
+### D, Edinburgh
 
-Quantile   | D, 2004 | D, 2012  | Change  
----------- | ------- | -------- | ------- 
-median     | 0.414   | 0.377    | -0.037
-2.5% CrI   | 0.409   | 0.372    | -0.044
-97.5% CrI  | 0.418   | 0.382    | -0.030 
+```{r, eval = TRUE, echo = FALSE, warning = FALSE, results = 'asis'}
+posterior_summaries %>% 
+  ungroup() %>% 
+  filter(place == "Edinburgh", measure == "D") %>% 
+  gather(key = "bound", value = "value", lower:upper) %>% 
+  select(period, bound, value) %>% 
+  mutate(value = round(value, 3)) %>% 
+  spread(bound, value) %>% 
+  select(period, median, lower, upper) %>% 
+  kable(., format = "markdown", caption = "D, Edinburgh")
 
+```
 
+### RCI, Glasgow
 
-#### Aberdeen
+```{r, eval = TRUE, echo = FALSE, warning = FALSE, results = 'asis'}
+posterior_summaries %>% 
+  ungroup() %>% 
+  filter(place == "Glasgow", measure == "D") %>% 
+  gather(key = "bound", value = "value", lower:upper) %>% 
+  select(period, bound, value) %>% 
+  mutate(value = round(value, 3)) %>% 
+  spread(bound, value) %>% 
+  select(period, median, lower, upper) %>% 
+  kable(., format = "markdown", caption = "D, Glasgow")
 
-Quantile   | RCI, 2004 | RCI, 2012  | Change  
----------- | --------  | ---------- | -------  
-median     | 0.218     | 0.187      | -0.031
-2.5% CrI   | 0.213     | 0.181      | -0.040
-97.5% CrI  | 0.224     | 0.193      | -0.022
+```
 
-
-Quantile   | D, 2004 | D, 2012  | Change  
----------- | ------- | -------- | ------- 
-median     | 0.385   | 0.360    | -0.024
-2.5% CrI   | 0.379   | 0.355    | -0.032
-97.5% CrI  | 0.390   | 0.366    | -0.017 
-
-
-
-#### Edinburgh
-
-
-Quantile   | RCI, 2004 | RCI, 2012  | Change  
----------- | --------  | ---------- | -------  
-median     | 0.013     | -0.013     | -0.025
-2.5% CrI   | 0.009     | -0.016     | -0.030
-97.5% CrI  | 0.016     | -0.009     | -0.020
-
-
-Quantile   | D, 2004 | D, 2012  | Change  
----------- | ------- | -------- | ------- 
-median     | 0.385   | 0.319    | -0.067
-2.5% CrI   | 0.382   | 0.316    | -0.071
-97.5% CrI  | 0.389   | 0.322    | -0.062 
 
 
 ### Change in RCI and D over time 
-
-```{r grab_posteriors, eval = TRUE, cache = FALSE, warning = FALSE, echo = FALSE}
-
-all_posteriors <- read_csv("data/all_posterior_draws.csv") # Results from running the many models
-
-all_posteriors  %>% 
-  group_by(place, measure, period)  %>% 
-  summarise(
-    lower = quantile(value, 0.025), 
-    median = quantile(value, 0.500), 
-    upper = quantile(value, 0.975)
-            ) -> posterior_summaries
-```
 
 Unlike the census-based variables used in Kavanagh, Lee & Pryce (2016), there are SIMD releases for 2004, 2006, 2009, 2012, and 2016, meaning in RCI and D scores within the period 2001 and 2011 can be observed. The Bayesian spatial modelling approach used by Kavanagh, Lee & Pryce (2016) was applied to each of the SIMD releases, and median RCI and D estimates, along with 95% CrIs, were produced for each release and for each city. 
 

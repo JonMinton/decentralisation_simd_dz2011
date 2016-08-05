@@ -250,254 +250,318 @@ $(document).ready(function () {
 <div id="rci-calculations" class="section level2">
 <h2>RCI calculations</h2>
 <p>This section will present the results of the RCI calculations, i.e. more formal attempt to replicate the results of Kavanagh, Pryce &amp; Lee (2016) using a different indicator and data source.</p>
-<p>For Glasgow, the RCI scores (with 95% credible intervals, CrIs) for 2004 and 2012, and for the difference between these two periods, are as follows:</p>
+<div id="rci-aberdeen" class="section level3">
+<h3>RCI, Aberdeen</h3>
 <table>
 <thead>
 <tr class="header">
-<th align="left">Quantile</th>
-<th align="left">RCI, 2004</th>
-<th align="left">RCI, 2012</th>
-<th align="left">Change</th>
+<th align="right">period</th>
+<th align="right">median</th>
+<th align="right">lower</th>
+<th align="right">upper</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">median</td>
-<td align="left">0.144</td>
-<td align="left">0.093</td>
-<td align="left">-0.051</td>
+<td align="right">2004</td>
+<td align="right">0.220</td>
+<td align="right">0.216</td>
+<td align="right">0.225</td>
 </tr>
 <tr class="even">
-<td align="left">2.5% CrI</td>
-<td align="left">0.142</td>
-<td align="left">0.091</td>
-<td align="left">-0.054</td>
+<td align="right">2006</td>
+<td align="right">0.237</td>
+<td align="right">0.233</td>
+<td align="right">0.242</td>
 </tr>
 <tr class="odd">
-<td align="left">97.5% CrI</td>
-<td align="left">0.146</td>
-<td align="left">0.096</td>
-<td align="left">-0.047</td>
-</tr>
-</tbody>
-</table>
-<p>From this we can conclude that there has been a statistically significant fall in RCI over these two periods using the SIMD income deprivation measure, as there had been for out-of-work benefits-based measures for 2001 and 2011 in Kavanagh at al 2016.</p>
-<p>As with Kavanagh et al 2016 Dissimilarity index scores (D) were also calculated for both periods, along with change between them. These are shown in the table below, and also show statistically significant falls.</p>
-<table>
-<thead>
-<tr class="header">
-<th align="left">Quantile</th>
-<th align="left">D, 2004</th>
-<th align="left">D, 2012</th>
-<th align="left">Change</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">median</td>
-<td align="left">0.368</td>
-<td align="left">0.315</td>
-<td align="left">-0.053</td>
+<td align="right">2009</td>
+<td align="right">0.036</td>
+<td align="right">0.035</td>
+<td align="right">0.036</td>
 </tr>
 <tr class="even">
-<td align="left">2.5% CrI</td>
-<td align="left">0.366</td>
-<td align="left">0.313</td>
-<td align="left">-0.056</td>
-</tr>
-<tr class="odd">
-<td align="left">97.5% CrI</td>
-<td align="left">0.370</td>
-<td align="left">0.317</td>
-<td align="left">-0.051</td>
-</tr>
-</tbody>
-</table>
-<div id="dundee" class="section level4">
-<h4>Dundee</h4>
-<table>
-<thead>
-<tr class="header">
-<th align="left">Quantile</th>
-<th align="left">RCI, 2004</th>
-<th align="left">RCI, 2012</th>
-<th align="left">Change</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">median</td>
-<td align="left">0.304</td>
-<td align="left">0.256</td>
-<td align="left">-0.048</td>
-</tr>
-<tr class="even">
-<td align="left">2.5% CrI</td>
-<td align="left">0.298</td>
-<td align="left">0.251</td>
-<td align="left">-0.056</td>
-</tr>
-<tr class="odd">
-<td align="left">97.5% CrI</td>
-<td align="left">0.309</td>
-<td align="left">0.262</td>
-<td align="left">-0.040</td>
-</tr>
-</tbody>
-</table>
-<table>
-<thead>
-<tr class="header">
-<th align="left">Quantile</th>
-<th align="left">D, 2004</th>
-<th align="left">D, 2012</th>
-<th align="left">Change</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">median</td>
-<td align="left">0.414</td>
-<td align="left">0.377</td>
-<td align="left">-0.037</td>
-</tr>
-<tr class="even">
-<td align="left">2.5% CrI</td>
-<td align="left">0.409</td>
-<td align="left">0.372</td>
-<td align="left">-0.044</td>
-</tr>
-<tr class="odd">
-<td align="left">97.5% CrI</td>
-<td align="left">0.418</td>
-<td align="left">0.382</td>
-<td align="left">-0.030</td>
+<td align="right">2012</td>
+<td align="right">0.036</td>
+<td align="right">0.036</td>
+<td align="right">0.037</td>
 </tr>
 </tbody>
 </table>
 </div>
-<div id="aberdeen" class="section level4">
-<h4>Aberdeen</h4>
+<div id="rci-dundee" class="section level3">
+<h3>RCI, Dundee</h3>
 <table>
 <thead>
 <tr class="header">
-<th align="left">Quantile</th>
-<th align="left">RCI, 2004</th>
-<th align="left">RCI, 2012</th>
-<th align="left">Change</th>
+<th align="right">period</th>
+<th align="right">median</th>
+<th align="right">lower</th>
+<th align="right">upper</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">median</td>
-<td align="left">0.218</td>
-<td align="left">0.187</td>
-<td align="left">-0.031</td>
+<td align="right">2004</td>
+<td align="right">0.308</td>
+<td align="right">0.304</td>
+<td align="right">0.313</td>
 </tr>
 <tr class="even">
-<td align="left">2.5% CrI</td>
-<td align="left">0.213</td>
-<td align="left">0.181</td>
-<td align="left">-0.040</td>
+<td align="right">2006</td>
+<td align="right">0.304</td>
+<td align="right">0.299</td>
+<td align="right">0.309</td>
 </tr>
 <tr class="odd">
-<td align="left">97.5% CrI</td>
-<td align="left">0.224</td>
-<td align="left">0.193</td>
-<td align="left">-0.022</td>
-</tr>
-</tbody>
-</table>
-<table>
-<thead>
-<tr class="header">
-<th align="left">Quantile</th>
-<th align="left">D, 2004</th>
-<th align="left">D, 2012</th>
-<th align="left">Change</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">median</td>
-<td align="left">0.385</td>
-<td align="left">0.360</td>
-<td align="left">-0.024</td>
+<td align="right">2009</td>
+<td align="right">0.069</td>
+<td align="right">0.068</td>
+<td align="right">0.069</td>
 </tr>
 <tr class="even">
-<td align="left">2.5% CrI</td>
-<td align="left">0.379</td>
-<td align="left">0.355</td>
-<td align="left">-0.032</td>
-</tr>
-<tr class="odd">
-<td align="left">97.5% CrI</td>
-<td align="left">0.390</td>
-<td align="left">0.366</td>
-<td align="left">-0.017</td>
+<td align="right">2012</td>
+<td align="right">0.062</td>
+<td align="right">0.062</td>
+<td align="right">0.062</td>
 </tr>
 </tbody>
 </table>
 </div>
-<div id="edinburgh" class="section level4">
-<h4>Edinburgh</h4>
+<div id="rci-edinburgh" class="section level3">
+<h3>RCI, Edinburgh</h3>
 <table>
 <thead>
 <tr class="header">
-<th align="left">Quantile</th>
-<th align="left">RCI, 2004</th>
-<th align="left">RCI, 2012</th>
-<th align="left">Change</th>
+<th align="right">period</th>
+<th align="right">median</th>
+<th align="right">lower</th>
+<th align="right">upper</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">median</td>
-<td align="left">0.013</td>
-<td align="left">-0.013</td>
-<td align="left">-0.025</td>
+<td align="right">2004</td>
+<td align="right">0.011</td>
+<td align="right">0.008</td>
+<td align="right">0.014</td>
 </tr>
 <tr class="even">
-<td align="left">2.5% CrI</td>
-<td align="left">0.009</td>
-<td align="left">-0.016</td>
-<td align="left">-0.030</td>
+<td align="right">2006</td>
+<td align="right">0.023</td>
+<td align="right">0.020</td>
+<td align="right">0.026</td>
 </tr>
 <tr class="odd">
-<td align="left">97.5% CrI</td>
-<td align="left">0.016</td>
-<td align="left">-0.009</td>
-<td align="left">-0.020</td>
+<td align="right">2009</td>
+<td align="right">0.009</td>
+<td align="right">0.009</td>
+<td align="right">0.009</td>
+</tr>
+<tr class="even">
+<td align="right">2012</td>
+<td align="right">0.011</td>
+<td align="right">0.011</td>
+<td align="right">0.011</td>
 </tr>
 </tbody>
 </table>
+</div>
+<div id="rci-glasgow" class="section level3">
+<h3>RCI, Glasgow</h3>
 <table>
 <thead>
 <tr class="header">
-<th align="left">Quantile</th>
-<th align="left">D, 2004</th>
-<th align="left">D, 2012</th>
-<th align="left">Change</th>
+<th align="right">period</th>
+<th align="right">median</th>
+<th align="right">lower</th>
+<th align="right">upper</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">median</td>
-<td align="left">0.385</td>
-<td align="left">0.319</td>
-<td align="left">-0.067</td>
+<td align="right">2004</td>
+<td align="right">0.156</td>
+<td align="right">0.154</td>
+<td align="right">0.157</td>
 </tr>
 <tr class="even">
-<td align="left">2.5% CrI</td>
-<td align="left">0.382</td>
-<td align="left">0.316</td>
-<td align="left">-0.071</td>
+<td align="right">2006</td>
+<td align="right">0.149</td>
+<td align="right">0.147</td>
+<td align="right">0.151</td>
 </tr>
 <tr class="odd">
-<td align="left">97.5% CrI</td>
-<td align="left">0.389</td>
-<td align="left">0.322</td>
-<td align="left">-0.062</td>
+<td align="right">2009</td>
+<td align="right">0.031</td>
+<td align="right">0.031</td>
+<td align="right">0.031</td>
+</tr>
+<tr class="even">
+<td align="right">2012</td>
+<td align="right">0.032</td>
+<td align="right">0.032</td>
+<td align="right">0.032</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="dissimilarity-calculations" class="section level2">
+<h2>Dissimilarity calculations</h2>
+<p>This section will present the results of the Dissimilarity index calculations, using the Bayesian modelling approach used in Kavanagh et al 2016.</p>
+<div id="d-aberdeen" class="section level3">
+<h3>D, Aberdeen</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="right">period</th>
+<th align="right">median</th>
+<th align="right">lower</th>
+<th align="right">upper</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">2004</td>
+<td align="right">0.408</td>
+<td align="right">0.402</td>
+<td align="right">0.412</td>
+</tr>
+<tr class="even">
+<td align="right">2006</td>
+<td align="right">0.404</td>
+<td align="right">0.399</td>
+<td align="right">0.409</td>
+</tr>
+<tr class="odd">
+<td align="right">2009</td>
+<td align="right">0.107</td>
+<td align="right">0.106</td>
+<td align="right">0.109</td>
+</tr>
+<tr class="even">
+<td align="right">2012</td>
+<td align="right">0.105</td>
+<td align="right">0.104</td>
+<td align="right">0.107</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="d-dundee" class="section level3">
+<h3>D, Dundee</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="right">period</th>
+<th align="right">median</th>
+<th align="right">lower</th>
+<th align="right">upper</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">2004</td>
+<td align="right">0.442</td>
+<td align="right">0.438</td>
+<td align="right">0.446</td>
+</tr>
+<tr class="even">
+<td align="right">2006</td>
+<td align="right">0.427</td>
+<td align="right">0.423</td>
+<td align="right">0.431</td>
+</tr>
+<tr class="odd">
+<td align="right">2009</td>
+<td align="right">0.139</td>
+<td align="right">0.138</td>
+<td align="right">0.140</td>
+</tr>
+<tr class="even">
+<td align="right">2012</td>
+<td align="right">0.127</td>
+<td align="right">0.126</td>
+<td align="right">0.128</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="d-edinburgh" class="section level3">
+<h3>D, Edinburgh</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="right">period</th>
+<th align="right">median</th>
+<th align="right">lower</th>
+<th align="right">upper</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">2004</td>
+<td align="right">0.413</td>
+<td align="right">0.411</td>
+<td align="right">0.416</td>
+</tr>
+<tr class="even">
+<td align="right">2006</td>
+<td align="right">0.396</td>
+<td align="right">0.393</td>
+<td align="right">0.398</td>
+</tr>
+<tr class="odd">
+<td align="right">2009</td>
+<td align="right">0.104</td>
+<td align="right">0.103</td>
+<td align="right">0.105</td>
+</tr>
+<tr class="even">
+<td align="right">2012</td>
+<td align="right">0.104</td>
+<td align="right">0.103</td>
+<td align="right">0.105</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="rci-glasgow-1" class="section level3">
+<h3>RCI, Glasgow</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="right">period</th>
+<th align="right">median</th>
+<th align="right">lower</th>
+<th align="right">upper</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">2004</td>
+<td align="right">0.390</td>
+<td align="right">0.389</td>
+<td align="right">0.392</td>
+</tr>
+<tr class="even">
+<td align="right">2006</td>
+<td align="right">0.368</td>
+<td align="right">0.367</td>
+<td align="right">0.370</td>
+</tr>
+<tr class="odd">
+<td align="right">2009</td>
+<td align="right">0.091</td>
+<td align="right">0.090</td>
+<td align="right">0.091</td>
+</tr>
+<tr class="even">
+<td align="right">2012</td>
+<td align="right">0.091</td>
+<td align="right">0.090</td>
+<td align="right">0.091</td>
 </tr>
 </tbody>
 </table>
