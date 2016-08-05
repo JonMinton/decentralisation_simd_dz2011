@@ -201,45 +201,79 @@ median     | 0.385   | 0.319    | -0.067
 97.5% CrI  | 0.389   | 0.322    | -0.062 
 
 
+### Change in RCI and D over time 
 
-<!-- > round(apply(indicators_edinburgh, 2, quantile, c(0.5, 0.025, 0.975)),3) -->
-<!--       RCI2004 RCI2012 D2004 D2012 -->
-<!-- 50%     0.013  -0.013 0.385 0.319 -->
-<!-- 2.5%    0.009  -0.016 0.382 0.316 -->
-<!-- 97.5%   0.016  -0.009 0.389 0.322 -->
-<!-- > ## Differences in RCI and D in 2011 - 2001 -->
-<!-- > round(quantile(indicators_edinburgh[ ,2] - indicators_edinburgh[ ,1], c(0.5, 0.025, 0.975)),3) -->
-<!--    50%   2.5%  97.5%  -->
-<!-- -0.025 -0.030 -0.020  -->
-<!-- > round(quantile(indicators_edinburgh[ ,4] - indicators_edinburgh[ ,3], c(0.5, 0.025, 0.975)),3) -->
-<!--    50%   2.5%  97.5%  -->
-<!-- -0.067 -0.071 -0.062  -->
-<!-- >  -->
-<!-- > indicators_aberdeen <- do_model("Aberdeen") -->
-<!-- Keys match perfectly. -->
+```{r grab_posteriors, eval = TRUE, cache = FALSE, warning = FALSE, echo = FALSE}
 
-<!-- Keys match perfectly. -->
+all_posteriors <- read_csv("data/all_posterior_draws.csv") # Results from running the many models
 
-<!-- Joining by: "dz_2011" -->
-<!-- data key contains NA's, which are ignored -->
-<!-- Over coverage. 6628 out of 6975 unmatched data records: S01006789, S01006790, S01006791, S01006792, S01006793, ... -->
-<!-- Setting up the model -->
-<!-- Collecting 20000 samples -->
-<!--   |====================================================================================| 100% -->
-<!-- Summarising results -->
-<!--  finished in  133.3 seconds -->
-<!-- > round(apply(indicators_aberdeen, 2, quantile, c(0.5, 0.025, 0.975)),3) -->
-<!--       RCI2004 RCI2012 D2004 D2012 -->
-<!-- 50%     0.218   0.187 0.385 0.360 -->
-<!-- 2.5%    0.213   0.181 0.379 0.355 -->
-<!-- 97.5%   0.224   0.193 0.390 0.366 -->
-<!-- > ## Differences in RCI and D in 2011 - 2001 -->
-<!-- > round(quantile(indicators_aberdeen[ ,2] - indicators_aberdeen[ ,1], c(0.5, 0.025, 0.975)),3) -->
-<!--    50%   2.5%  97.5%  -->
-<!-- -0.031 -0.040 -0.022  -->
-<!-- > round(quantile(indicators_aberdeen[ ,4] - indicators_aberdeen[ ,3], c(0.5, 0.025, 0.975)),3) -->
-<!--    50%   2.5%  97.5%  -->
-<!-- -0.024 -0.032 -0.017  -->
+all_posteriors  %>% 
+  group_by(place, measure, period)  %>% 
+  summarise(
+    lower = quantile(value, 0.025), 
+    median = quantile(value, 0.500), 
+    upper = quantile(value, 0.975)
+            ) -> posterior_summaries
+```
+
+Unlike the census-based variables used in Kavanagh, Lee & Pryce (2016), there are SIMD releases for 2004, 2006, 2009, 2012, and 2016, meaning in RCI and D scores within the period 2001 and 2011 can be observed. The Bayesian spatial modelling approach used by Kavanagh, Lee & Pryce (2016) was applied to each of the SIMD releases, and median RCI and D estimates, along with 95% CrIs, were produced for each release and for each city. 
+
+The graph of RCI over time is shown below.
+
+```{r plot_change_rci, eval = TRUE, echo = FALSE, warning = FALSE}
+# Do RCI graph
+posterior_summaries %>% 
+  filter(measure == "RCI") %>% 
+   mutate(period = as.factor(period)) %>% 
+   ggplot(., 
+          aes(
+            x = period, group = place, 
+            y = median, colour = place,
+            shape = place)) + 
+   geom_line() + geom_point() + 
+   scale_y_continuous(limits = c(0, 0.4) ) +
+   geom_line(aes(y = upper), linetype = "dashed") + 
+   geom_line(aes(y = lower), linetype = "dashed") + 
+   labs(
+     y = "RCI of income deprived", x = "Year", 
+     title = "Change in RCI", 
+     colour = "City", shape = "City") +
+   theme(legend.position = c(0.8, 0.8))
+
+```
+
+This shows that the greatest falls in RCI occurred between the 2006 and 2009 SIMD releases 
+
+The plot of changes in D over time is shown below
+
+
+```{r plot_change_d, eval = TRUE, echo = FALSE, warning = FALSE}
+# Do D graph
+
+posterior_summaries %>% 
+  filter(measure == "D") %>% 
+  mutate(period = as.factor(period)) %>% 
+  ggplot(., 
+         aes(
+           x = period, group = place, 
+           y = median, colour = place,
+           shape = place)) + 
+  geom_line() + geom_point() + 
+  scale_y_continuous(limits = c(0, 0.5) ) +
+  geom_line(aes(y = upper), linetype = "dashed") + 
+  geom_line(aes(y = lower), linetype = "dashed") + 
+  labs(
+    y = "D of income deprived", x = "Year", 
+    title = "Change in D", 
+    colour = "City", shape = "City") +
+  theme(legend.position = c(0.8, 0.8))
+
+
+```
+
+Similarly, the the greatest fall in D occurred between 2006 and 2009. 
+
+
 
 ## Maps
 
