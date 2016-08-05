@@ -278,8 +278,10 @@ do_model <- function(place, initial_dist = 18000){
         shp = . , data = centre_distance, 
         key.shp = "DataZone", key.data = "datazone"
       ) %>% 
-      .[.$nearest_centre == "Glasgow",] %>% 
+      .[.$nearest_centre == place,] %>% 
       .[.$distance_to_centre <= this_dist,] -> dz_city
+    # plot(dz_city, main = this_dist)
+    # browser()
 
     w <-  poly2nb(dz_city)   
     if (any(card(w) == 0)){
@@ -316,7 +318,7 @@ do_model <- function(place, initial_dist = 18000){
     .[!is.na(.$pop_total_2004),] -> dz_city
   
   
-  w_nb <- poly2nb(dz_city)
+  W_nb <- poly2nb(dz_city)
   # distance to allow the 'islands' to be included 
   W_list <- nb2listw(W_nb, style = "B")
   W <- nb2mat(W_nb, style = "B")
@@ -355,6 +357,7 @@ do_model <- function(place, initial_dist = 18000){
   
   all_2004 <- as.integer(N.mat[,1])
   all_2012 <- as.integer(N.mat[,2])
+  
   for(i in 1:n.keep)
   {
     ## Compute the probability and fitted values for the ith posterior sample
@@ -364,8 +367,8 @@ do_model <- function(place, initial_dist = 18000){
     fitted.mat <- N.mat * prob.mat
     
     ## Compute the RCI for both years
-    indicators.post[i, 1] <-RCI(fitted.mat[ ,1], as.integer(N.mat[,1]), dist.order)
-    indicators.post[i, 2] <-RCI(fitted.mat[ ,2], as.integer(N.mat[,2]), dist.order)
+    indicators.post[i, 1] <- RCI(fitted.mat[ ,1], as.integer(N.mat[,1]), dist.order)
+    indicators.post[i, 2] <- RCI(fitted.mat[ ,2], as.integer(N.mat[,2]), dist.order)
     
     ## Compute D for both years
     p_2004 <- prob.mat[ ,1]
@@ -380,24 +383,258 @@ do_model <- function(place, initial_dist = 18000){
   indicators.post  
 }
 
-
-indicators_dundee <- do_model("Dundee")
 indicators_aberdeen <- do_model("Aberdeen")
+indicators_dundee <- do_model("Dundee")
 indicators_edinburgh <- do_model("Edinburgh")
+indicators_glasgow <- do_model("Glasgow")
+
+
+pull_and_tidy_quantiles <- function(mtrx, place, quantiles = c(median = 0.5, lower = 0.025, upper = 0.975)){
+  apply(mtrx, 2, quantile, quantiles) %>% 
+    round(3) %>% 
+    as.data.frame()  %>% 
+    tbl_df()  %>% 
+    mutate(quant = names(quantiles), place = place)  %>% 
+    gather(my, value, 1:4)  %>% 
+    mutate(
+      measure = str_replace_all(my, "[0-9]", ""), 
+      period = str_replace_all(my, "[:alpha:]", "")
+    )  %>% 
+    select(place, measure, period, quant, value) -> out1
+  
+  data_frame(
+    place = place, 
+    measure = "RCI",
+    period = "diff",
+    quant = names(quantiles),
+    value = quantile(mtrx[,2] - mtrx[,1], quantiles) %>% round(3)
+  ) -> out2
+  
+  data_frame(
+    place = place, 
+    measure = "D",
+    period = "diff",
+    quant = names(quantiles),
+    value = quantile(mtrx[,4] - mtrx[,3], quantiles) %>% round(3)
+  ) -> out3
+  
+  out1 %>% bind_rows(out2) %>% bind_rows(out3) %>% 
+    arrange(period, measure, quant, place)
+}
+
+
+pull_and_tidy_quantiles(indicators_aberdeen, "Aberdeen") -> tmp1
+pull_and_tidy_quantiles(indicators_dundee, "Dundee") -> tmp2
+pull_and_tidy_quantiles(indicators_edinburgh, "Edinburgh") -> tmp3
+pull_and_tidy_quantiles(indicators_glasgow, "Glasgow") -> tmp4
+
+all_tidied_quantiles <- reduce(list(tmp1, tmp2, tmp3, tmp4), bind_rows)
+rm(tmp1, tmp2, tmp3, tmp4)
+
+
+# Now to start to plot this 
+
+# RCI change by city 
+
+all_tidied_quantiles %>% 
+  filter(measure == "RCI") %>% 
+  filter(period %in% c("2004", "2012")) %>%
+  mutate(period = as.factor(period)) %>% 
+  spread(quant, value) %>% 
+  ggplot(., 
+         aes(
+           x = period, group = place, 
+           y = median, colour = place,
+           shape = place)) + 
+  geom_line() + geom_point() + 
+  geom_line(aes(y = upper), linetype = "dashed") + 
+  geom_line(aes(y = lower), linetype = "dashed") + 
+  labs(y = "RCI", x = "Year")
 
 
 
-## Summarise the results
-## RCI and D in 2001 and 2011 - estimate and 95% Credible Interval
-round(apply(indicators.post, 2, quantile, c(0.5, 0.025, 0.975)),3)
 
-## Differences in RCI and D in 2011 - 2001
-round(quantile(indicators.post[ ,2] - indicators.post[ ,1], c(0.5, 0.025, 0.975)),3)
-round(quantile(indicators.post[ ,4] - indicators.post[ ,3], c(0.5, 0.025, 0.975)),3)
+# Now to revise do_model to run all available years 
 
 
 
+do_model <- function(place, initial_dist = 18000){
+  
+  this_dist <- initial_dist
+  has_islands <- T
+  
+  while(has_islands){
+    dz_2011  %>% 
+      append_data(
+        shp = . , data = centre_distance, 
+        key.shp = "DataZone", key.data = "datazone"
+      ) %>% 
+      .[.$nearest_centre == place,] %>% 
+      .[.$distance_to_centre <= this_dist,] -> dz_city
+    # plot(dz_city, main = this_dist)
+    # browser()
+    
+    w <-  poly2nb(dz_city)   
+    if (any(card(w) == 0)){
+      this_dist <- this_dist + 1000
+    } else {
+      has_islands <- F
+    }
+  }
+  
+  simd_2011_reweighted %>% 
+    select(dz_2011, year, pop_total, pop_incomedeprived) -> tmp
+  
+  tmp %>% 
+    select(-pop_incomedeprived) %>% 
+    mutate(year = paste0("pop_total_", year)) %>% 
+    spread(year, pop_total) -> pops
+  
+  tmp %>% 
+    select(-pop_total) %>% 
+    mutate(year = paste0("pop_id_", year)) %>% 
+    spread(year, pop_incomedeprived) -> incdeps
+  
+  popinc <- pops %>% inner_join(incdeps)
+  rm(tmp, pops, incdeps)
+  
+  
+  dz_city %>% 
+    append_data(
+      shp = ., data = popinc,
+      key.shp = "DataZone", key.data = "dz_2011",
+      ignore.na = T
+    ) %>% 
+    .[!is.na(.$pop_total_2004),] -> dz_city
+  
+  
+  W_nb <- poly2nb(dz_city)
+  # distance to allow the 'islands' to be included 
+  W_list <- nb2listw(W_nb, style = "B")
+  W <- nb2mat(W_nb, style = "B")
+  n <- nrow(W)
+  
+  # Need to remove unconnected datazones ('islands')
+  
+  
+  
+  #### Format the data
+  Y.mat <- cbind(
+    dz_city@data$pop_id_2004,
+    dz_city@data$pop_id_2006, 
+    dz_city@data$pop_id_2009, 
+    dz_city@data$pop_id_2012 
+  )
+  Y <- as.integer(t(Y.mat)) # Noninteger values as reweighted
+  
+  N.mat <- cbind(
+    dz_city@data$pop_total_2004,
+    dz_city@data$pop_total_2006, 
+    dz_city@data$pop_total_2009, 
+    dz_city@data$pop_total_2012 
+  )
+  N <- as.integer(t(N.mat)) # Noninteger values as reweighted
+  
+  #### Run the model
+  model <- binomial.MCARleroux(
+    formula=Y~1, trials=N, W=W, 
+    burnin=burnin, n.sample=n.sample, thin=thin
+  )
+  model$summary.results
+  
+  #### Compute the coordinates and ordering from the city centre
+  dist.order <- order(dz_city@data$distance_to_centre)
+  
+  #### Compute the global RCI and D
+  indicators.post <- array(NA, c(n.keep,8))
+  colnames(indicators.post) <- c(
+    "RCI_2004", "RCI_2006","RCI_2009","RCI_2012", 
+    "D_2004", "D_2006", "D_2009", "D_2012"
+    )
+  
+  all_2004 <- as.integer(N.mat[,1])
+  all_2006 <- as.integer(N.mat[,2])
+  all_2009 <- as.integer(N.mat[,3])
+  all_2012 <- as.integer(N.mat[,4])
+  
+  for(i in 1:n.keep)
+  {
+    ## Compute the probability and fitted values for the ith posterior sample
+    logit <- model$samples$beta[i, ] + model$samples$phi[i, ]
+    prob <- exp(logit) / (1 + exp(logit))
+    prob.mat <- matrix(prob, nrow=n, byrow=TRUE)
+    fitted.mat <- N.mat * prob.mat
+    
+    ## Compute the RCI for both years
+    indicators.post[i, 1] <- RCI(fitted.mat[ ,1], as.integer(N.mat[,1]), dist.order)
+    indicators.post[i, 2] <- RCI(fitted.mat[ ,2], as.integer(N.mat[,2]), dist.order)
+    indicators.post[i, 3] <- RCI(fitted.mat[ ,3], as.integer(N.mat[,3]), dist.order)
+    indicators.post[i, 4] <- RCI(fitted.mat[ ,4], as.integer(N.mat[,4]), dist.order)
+    
+    ## Compute D for both years
+    p_2004 <- prob.mat[ ,1]
+    p_2004_av <- sum(p_2004 * all_2004) / sum(all_2004)
+    indicators.post[i, 5] <- sum(all_2004 * abs(p_2004 - p_2004_av)) / (2 * sum(all_2004) * p_2004_av * (1-p_2004_av))   
+    
+    p_2006 <- prob.mat[ ,2]
+    p_2006_av <- sum(p_2006 * all_2006) / sum(all_2006)
+    indicators.post[i, 6] <- sum(all_2006 * abs(p_2006 - p_2006_av)) / (2 * sum(all_2006) * p_2006_av * (1-p_2006_av))   
+    
+    p_2009 <- prob.mat[ ,3]
+    p_2009_av <- sum(p_2009 * all_2009) / sum(all_2009)
+    indicators.post[i, 7] <- sum(all_2009 * abs(p_2009 - p_2009_av)) / (2 * sum(all_2009) * p_2009_av * (1-p_2009_av))   
+    
+    p_2012 <- prob.mat[ ,4]
+    p_2012_av <- sum(p_2012 * all_2012) / sum(all_2012)
+    indicators.post[i, 8] <- sum(all_2012 * abs(p_2012 - p_2012_av)) / (2 * sum(all_2012) * p_2012_av * (1-p_2012_av))   
+    
+        
+  }
+  
+  indicators.post  
+}
 
+indicators_aberdeen <- do_model("Aberdeen")
+indicators_dundee <- do_model("Dundee")
+indicators_edinburgh <- do_model("Edinburgh")
+indicators_glasgow <- do_model("Glasgow")
+
+
+pull_and_tidy_quantiles <- function(mtrx, place, quantiles = c(median = 0.5, lower = 0.025, upper = 0.975)){
+  apply(mtrx, 2, quantile, quantiles) %>% 
+    round(3) %>% 
+    as.data.frame()  %>% 
+    tbl_df()  %>% 
+    mutate(quant = names(quantiles), place = place)  %>% 
+    gather(my, value, 1:8)  %>% 
+    separate(my, sep = "_", into = c("measure", "period")) %>% 
+    select(place, measure, period, quant, value) 
+}
+
+
+pull_and_tidy_quantiles(indicators_aberdeen, "Aberdeen") -> tmp1
+pull_and_tidy_quantiles(indicators_dundee, "Dundee") -> tmp2
+pull_and_tidy_quantiles(indicators_edinburgh, "Edinburgh") -> tmp3
+pull_and_tidy_quantiles(indicators_glasgow, "Glasgow") -> tmp4
+
+all_tidied_quantiles <- reduce(list(tmp1, tmp2, tmp3, tmp4), bind_rows)
+rm(tmp1, tmp2, tmp3, tmp4)
+
+
+
+all_tidied_quantiles %>% 
+  filter(measure == "RCI") %>% 
+  mutate(period = as.factor(period)) %>% 
+  spread(quant, value) %>% 
+  ggplot(., 
+         aes(
+           x = period, group = place, 
+           y = median, colour = place,
+           shape = place)) + 
+  geom_line() + geom_point() + 
+  geom_line(aes(y = upper), linetype = "dashed") + 
+  geom_line(aes(y = lower), linetype = "dashed") + 
+  labs(y = "RCI", x = "Year")
 
 # ##################################################
 # #### Compute the local RCI for each area and plot

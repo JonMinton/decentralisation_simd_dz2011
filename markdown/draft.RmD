@@ -136,7 +136,7 @@ Quantile   | RCI, 2004 | RCI, 2012  | Change
 ---------- | --------  | ---------- | -------  
 median     | 0.144     | 0.093      | -0.051
 2.5% CrI   | 0.142     | 0.091      | -0.054
-97.5% CrI  | 0.146     | 0.095      | -0.048
+97.5% CrI  | 0.146     | 0.096      | -0.047
 
 
 From this we can conclude that there has been a statistically significant fall in RCI over these two periods using the SIMD income deprivation measure, as there had been for out-of-work benefits-based measures for 2001 and 2011 in Kavanagh at al 2016. 
@@ -150,6 +150,96 @@ median     | 0.368   | 0.315    | -0.053
 97.5% CrI  | 0.370   | 0.317    | -0.051 
 
 
+#### Dundee 
+
+Quantile   | RCI, 2004 | RCI, 2012  | Change  
+---------- | --------  | ---------- | -------  
+median     | 0.304     | 0.256      | -0.048
+2.5% CrI   | 0.298     | 0.251      | -0.056
+97.5% CrI  | 0.309     | 0.262      | -0.040
+
+
+Quantile   | D, 2004 | D, 2012  | Change  
+---------- | ------- | -------- | ------- 
+median     | 0.414   | 0.377    | -0.037
+2.5% CrI   | 0.409   | 0.372    | -0.044
+97.5% CrI  | 0.418   | 0.382    | -0.030 
+
+
+
+#### Aberdeen
+
+Quantile   | RCI, 2004 | RCI, 2012  | Change  
+---------- | --------  | ---------- | -------  
+median     | 0.218     | 0.187      | -0.031
+2.5% CrI   | 0.213     | 0.181      | -0.040
+97.5% CrI  | 0.224     | 0.193      | -0.022
+
+
+Quantile   | D, 2004 | D, 2012  | Change  
+---------- | ------- | -------- | ------- 
+median     | 0.385   | 0.360    | -0.024
+2.5% CrI   | 0.379   | 0.355    | -0.032
+97.5% CrI  | 0.390   | 0.366    | -0.017 
+
+
+
+#### Edinburgh
+
+
+Quantile   | RCI, 2004 | RCI, 2012  | Change  
+---------- | --------  | ---------- | -------  
+median     | 0.013     | -0.013     | -0.025
+2.5% CrI   | 0.009     | -0.016     | -0.030
+97.5% CrI  | 0.016     | -0.009     | -0.020
+
+
+Quantile   | D, 2004 | D, 2012  | Change  
+---------- | ------- | -------- | ------- 
+median     | 0.385   | 0.319    | -0.067
+2.5% CrI   | 0.382   | 0.316    | -0.071
+97.5% CrI  | 0.389   | 0.322    | -0.062 
+
+
+
+<!-- > round(apply(indicators_edinburgh, 2, quantile, c(0.5, 0.025, 0.975)),3) -->
+<!--       RCI2004 RCI2012 D2004 D2012 -->
+<!-- 50%     0.013  -0.013 0.385 0.319 -->
+<!-- 2.5%    0.009  -0.016 0.382 0.316 -->
+<!-- 97.5%   0.016  -0.009 0.389 0.322 -->
+<!-- > ## Differences in RCI and D in 2011 - 2001 -->
+<!-- > round(quantile(indicators_edinburgh[ ,2] - indicators_edinburgh[ ,1], c(0.5, 0.025, 0.975)),3) -->
+<!--    50%   2.5%  97.5%  -->
+<!-- -0.025 -0.030 -0.020  -->
+<!-- > round(quantile(indicators_edinburgh[ ,4] - indicators_edinburgh[ ,3], c(0.5, 0.025, 0.975)),3) -->
+<!--    50%   2.5%  97.5%  -->
+<!-- -0.067 -0.071 -0.062  -->
+<!-- >  -->
+<!-- > indicators_aberdeen <- do_model("Aberdeen") -->
+<!-- Keys match perfectly. -->
+
+<!-- Keys match perfectly. -->
+
+<!-- Joining by: "dz_2011" -->
+<!-- data key contains NA's, which are ignored -->
+<!-- Over coverage. 6628 out of 6975 unmatched data records: S01006789, S01006790, S01006791, S01006792, S01006793, ... -->
+<!-- Setting up the model -->
+<!-- Collecting 20000 samples -->
+<!--   |====================================================================================| 100% -->
+<!-- Summarising results -->
+<!--  finished in  133.3 seconds -->
+<!-- > round(apply(indicators_aberdeen, 2, quantile, c(0.5, 0.025, 0.975)),3) -->
+<!--       RCI2004 RCI2012 D2004 D2012 -->
+<!-- 50%     0.218   0.187 0.385 0.360 -->
+<!-- 2.5%    0.213   0.181 0.379 0.355 -->
+<!-- 97.5%   0.224   0.193 0.390 0.366 -->
+<!-- > ## Differences in RCI and D in 2011 - 2001 -->
+<!-- > round(quantile(indicators_aberdeen[ ,2] - indicators_aberdeen[ ,1], c(0.5, 0.025, 0.975)),3) -->
+<!--    50%   2.5%  97.5%  -->
+<!-- -0.031 -0.040 -0.022  -->
+<!-- > round(quantile(indicators_aberdeen[ ,4] - indicators_aberdeen[ ,3], c(0.5, 0.025, 0.975)),3) -->
+<!--    50%   2.5%  97.5%  -->
+<!-- -0.024 -0.032 -0.017  -->
 
 ## Maps
 
@@ -327,6 +417,7 @@ As with Glasgow and Edinburgh, it appears both that the greatest changes have oc
 ## Plotting temporal dependence
 
 The following plot shows scatterplots of the ID proportions in each Scottish datazone in 2004, 2009 and 2012. Within these plots the blue line indicates parity between values on the x and y axis, and the red dashed line shows a nonlinear smoother function between the two ID proportions being plotted, and hence the level of deviation between the actual relationship over the two years and parity. 
+
 ```{r show_temporal_dep, echo = FALSE, warning = FALSE, EVAL = TRUE}
 
 simd_2011_reweighted %>% 
@@ -488,6 +579,7 @@ plot_grid(
 This plot indicates proportionate falls in the ID population shares at distances closes to the city centre, up to around 20% in Aberdeen and Glasgow, and either proportionate rises (Dundee and Edinburgh) or little change in proportions (Aberdeen and Glasgow) at greater distance from the city centre. This seems to suggest, for Aberdeen and Glasgow in particular, that 'gentrification of the centre' could be as much or more of an explanation for falls in RCI as 'impoverishment of the periphery', though that there are somewhat different socioeconomic mechanisms in place for the four cities.
 
 The following plot shows the change in the total population size as a function of distance from city centre. (The smoother line at distances less than 1km should likely be ignored for most cities as it involves extrapolation based on very few observations). 
+
 ```{r plot_changetotalpop, eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
 totalpopchange_plot_for_city <- function(this_city){
   simd_2011_reweighted  %>% 
@@ -519,6 +611,7 @@ plot_grid(
   nrow = 2
 )
 ```
+
 This plot suggests that there have been substantial increases in population sizes in Aberdeen, Edimburgh and Glasgow over this period, in datazones closer to the city centre, with the greatest changes occurring near the centre of Glasgow. In Aberdeen, and to a lesser extent for Dundee, there have also been increases in population shares living at distances of 12km and more from the city, suggesting greatest consistency in population sizes at intermediate distances.
 
 
@@ -549,7 +642,6 @@ simple_results %>%
 ```
 
 
-
 # Discussion
 
 ## Substantive Findings
@@ -560,7 +652,7 @@ The apparent fall in income deprivation proportions in more central areas of cit
 
 ## Limitations and recommendations for further research
 
-Alternative methods of reweighting SIMD values released at 2001 datazone levels could be explored, including those which make use of more sophisticated GIS-based methods to apportion values to 2011 datazones, and of approaches which use SIMD component values available at a higher level of spatial disaggregation (e.g. output areas) to recalculate and reapportion SIMD scores to 2011 datazone geographies. As with all analyses, the additional benefit of alternative and more sophisticated approaches should be weighted against the additional time cost involved, and a judgement made about whether the ratio of marginal benefits to marginal costs represents a cost effective use of researcher time.
+Alternative methods of reweighting SIMD values released at 2001 datazone levels could be explored, including those which make use of more sophisticated GIS-based methods to apportion values to 2011 datazones, and of approaches which use SIMD component values available at a higher level of spatial disaggregation (e.g. output areas) to recalculate and reapportion SIMD scores to 2011 datazone geographies. 
 
 The robustness of the results to the choice of city centre could be explored in a sensitivity analysis.
 
