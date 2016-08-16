@@ -5,6 +5,7 @@ require(pacman)
 pacman::p_load(
   readr, readxl,
   purrr, Rcpp, MCMCpack,
+  CARBayes,
   stringr, tidyr, dplyr, broom,
   rgeos, shapefiles, sp, spdep, truncdist,
   maptools,   tmap,

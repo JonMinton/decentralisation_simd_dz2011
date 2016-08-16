@@ -74,27 +74,36 @@ do_model <- function(place, initial_dist = 18000){
   
   #### Format the data
   Y.mat <- cbind(
-    dz_city@data$pop_id_2004,
-    dz_city@data$pop_id_2006, 
-    dz_city@data$pop_id_2009, 
-    dz_city@data$pop_id_2012 
+    as.integer(dz_city@data$pop_id_2004),
+    as.integer(dz_city@data$pop_id_2006), 
+    as.integer(dz_city@data$pop_id_2009), 
+    as.integer(dz_city@data$pop_id_2012) 
   )
-  Y <- as.integer(t(Y.mat)) # Noninteger values as reweighted
   
   N.mat <- cbind(
-    dz_city@data$pop_total_2004,
-    dz_city@data$pop_total_2006, 
-    dz_city@data$pop_total_2009, 
-    dz_city@data$pop_total_2012 
+    as.integer(dz_city@data$pop_total_2004),
+    as.integer(dz_city@data$pop_total_2006), 
+    as.integer(dz_city@data$pop_total_2009), 
+    as.integer(dz_city@data$pop_total_2012) 
   )
-  N <- as.integer(t(N.mat)) # Noninteger values as reweighted
+
+
   
   #### Run the model
-  model <- binomial.MCARleroux(
-    formula=Y~1, trials=N, W=W, 
-    burnin=burnin, n.sample=n.sample, thin=thin
-  )
-  model$summary.results
+  Y <- Y.mat[,1] ; N <- N.mat[,1]
+  model_01 <- S.CARleroux(Y ~ 1, trials = N, W = W, family = "binomial", burnin = burnin, n.sample = n.sample, thin = thin )  
+
+  Y <- Y.mat[,2] ; N <- N.mat[,2]
+  model_02 <- S.CARleroux(Y ~ 1, trials = N, W = W, family = "binomial", burnin = burnin, n.sample = n.sample, thin = thin )  
+
+  Y <- Y.mat[,3] ; N <- N.mat[,3]
+  model_03 <- S.CARleroux(Y ~ 1, trials = N, W = W, family = "binomial", burnin = burnin, n.sample = n.sample, thin = thin )  
+
+  Y <- Y.mat[,4] ; N <- N.mat[,4]
+  model_04 <- S.CARleroux(Y ~ 1, trials = N, W = W, family = "binomial", burnin = burnin, n.sample = n.sample, thin = thin )  
+  
+
+#  model$summary.results
   
   #### Compute the coordinates and ordering from the city centre
   dist.order <- order(dz_city@data$distance_to_centre)
@@ -114,31 +123,49 @@ do_model <- function(place, initial_dist = 18000){
   for(i in 1:n.keep)
   {
     ## Compute the probability and fitted values for the ith posterior sample
-    logit <- model$samples$beta[i, ] + model$samples$phi[i, ]
-    prob <- exp(logit) / (1 + exp(logit))
-    prob.mat <- matrix(prob, nrow=n, byrow=TRUE)
-    fitted.mat <- N.mat * prob.mat
+    logit_01 <- model_01$samples$beta[i, ] + model_01$samples$phi[i, ]
+    prob_01 <- exp(logit_01) / (1 + exp(logit_01))
+    prob.mat_01 <- matrix(prob_01, nrow=n, byrow=TRUE)
+    fitted.mat_01 <- N.mat[,1] * prob.mat_01
+  # Explore from here 
+
+    logit_02 <- model_02$samples$beta[i, ] + model_02$samples$phi[i, ]
+    prob_02 <- exp(logit_02) / (1 + exp(logit_02))
+    prob.mat_02 <- matrix(prob_02, nrow=n, byrow=TRUE)
+    fitted.mat_02 <- N.mat[,2] * prob.mat_02
+
+    
+    logit_03 <- model_03$samples$beta[i, ] + model_03$samples$phi[i, ]
+    prob_03 <- exp(logit_03) / (1 + exp(logit_03))
+    prob.mat_03 <- matrix(prob_03, nrow=n, byrow=TRUE)
+    fitted.mat_03 <- N.mat[,3] * prob.mat_03
+
+    logit_04 <- model_04$samples$beta[i, ] + model_04$samples$phi[i, ]
+    prob_04 <- exp(logit_04) / (1 + exp(logit_04))
+    prob.mat_04 <- matrix(prob_04, nrow=n, byrow=TRUE)
+    fitted.mat_04 <- N.mat[,4] * prob.mat_04
+    
     
     ## Compute the RCI for both years
-    indicators.post[i, 1] <- RCI(fitted.mat[ ,1], as.integer(N.mat[,1]), dist.order)
-    indicators.post[i, 2] <- RCI(fitted.mat[ ,2], as.integer(N.mat[,2]), dist.order)
-    indicators.post[i, 3] <- RCI(fitted.mat[ ,3], as.integer(N.mat[,3]), dist.order)
-    indicators.post[i, 4] <- RCI(fitted.mat[ ,4], as.integer(N.mat[,4]), dist.order)
+    indicators.post[i, 1] <- RCI(fitted.mat_01, as.integer(N.mat[,1]), dist.order)
+    indicators.post[i, 2] <- RCI(fitted.mat_02, as.integer(N.mat[,2]), dist.order)
+    indicators.post[i, 3] <- RCI(fitted.mat_03, as.integer(N.mat[,3]), dist.order)
+    indicators.post[i, 4] <- RCI(fitted.mat_04, as.integer(N.mat[,4]), dist.order)
     
     ## Compute D for both years
-    p_2004 <- prob.mat[ ,1]
+    p_2004 <- prob.mat_01
     p_2004_av <- sum(p_2004 * all_2004) / sum(all_2004)
     indicators.post[i, 5] <- sum(all_2004 * abs(p_2004 - p_2004_av)) / (2 * sum(all_2004) * p_2004_av * (1-p_2004_av))   
     
-    p_2006 <- prob.mat[ ,2]
+    p_2006 <- prob.mat_02
     p_2006_av <- sum(p_2006 * all_2006) / sum(all_2006)
     indicators.post[i, 6] <- sum(all_2006 * abs(p_2006 - p_2006_av)) / (2 * sum(all_2006) * p_2006_av * (1-p_2006_av))   
     
-    p_2009 <- prob.mat[ ,3]
+    p_2009 <- prob.mat_03
     p_2009_av <- sum(p_2009 * all_2009) / sum(all_2009)
     indicators.post[i, 7] <- sum(all_2009 * abs(p_2009 - p_2009_av)) / (2 * sum(all_2009) * p_2009_av * (1-p_2009_av))   
     
-    p_2012 <- prob.mat[ ,4]
+    p_2012 <- prob.mat_04
     p_2012_av <- sum(p_2012 * all_2012) / sum(all_2012)
     indicators.post[i, 8] <- sum(all_2012 * abs(p_2012 - p_2012_av)) / (2 * sum(all_2012) * p_2012_av * (1-p_2012_av))   
     
@@ -147,6 +174,9 @@ do_model <- function(place, initial_dist = 18000){
   
   indicators.post  
 }
+
+
+
 
 indicators_aberdeen <- do_model("Aberdeen")
 indicators_dundee <- do_model("Dundee")
