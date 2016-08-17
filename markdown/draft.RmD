@@ -279,59 +279,70 @@ posterior_summaries %>%
 
 Unlike the census-based variables used in Kavanagh, Lee & Pryce (2016), there are SIMD releases for 2004, 2006, 2009, 2012, and 2016, meaning in RCI and D scores within the period 2001 and 2011 can be observed. The Bayesian spatial modelling approach used by Kavanagh, Lee & Pryce (2016) was applied to each of the SIMD releases, and median RCI and D estimates, along with 95% CrIs, were produced for each release and for each city. 
 
-The graph of RCI over time is shown below.
+The graph of RCI over time is shown below. The density of RCI estimates for each place and in each year is shown using a violin plot, with longer shapes indicating a greater range of posterior estimates. The median RCI scores are indicated as points, linked for each city with dashed lines. 
 
 ```{r plot_change_rci, eval = TRUE, echo = FALSE, warning = FALSE}
 # Do RCI graph
-posterior_summaries %>% 
-  filter(measure == "RCI") %>% 
-   mutate(period = as.factor(period)) %>% 
-   ggplot(., 
-          aes(
-            x = period, group = place, 
-            y = median, colour = place,
-            shape = place)) + 
-   geom_line() + geom_point() + 
-   scale_y_continuous(limits = c(0, 0.4) ) +
-   geom_line(aes(y = upper), linetype = "dashed") + 
-   geom_line(aes(y = lower), linetype = "dashed") + 
-   labs(
-     y = "RCI of income deprived", x = "Year", 
-     title = "Change in RCI", 
-     colour = "City", shape = "City") +
-   theme(legend.position = c(0.8, 0.8))
+
+all_posteriors  %>% 
+  filter(measure == "RCI")   %>% 
+  group_by(place, period)  %>% 
+  mutate(med_val = median(value))  %>%  
+  mutate(pp = paste0(place, period))  %>% 
+  ggplot(.) + 
+  geom_violin(
+    aes(x = factor(period), y = value, group = pp, fill = place), 
+    alpha = 0.2, position = "identity"
+  ) + 
+  geom_line(
+    aes(x = factor(period), y = med_val, group = place, colour = place), 
+    size = 1.1, linetype = "dashed"
+  ) + 
+  geom_point(
+    aes(x = factor(period), y = med_val, shape = place, colour = place), 
+    size = 3.5
+  ) + 
+  labs(
+    x = "Year", y = "RCI", colour = "City", 
+    shape = "City", fill = "City", title = "Change in RCI scores over time"
+  ) + 
+  geom_hline(aes(yintercept = 0))
 
 ```
 
-This shows that the greatest falls in RCI occurred between the 2006 and 2009 SIMD releases 
+The overall trend in each place is for RCI to reduce from 2004 to 2012. However within each period the ordering of RCIs between places has not changed, with Dundee showing the most centralisation of poverty, then Aberdeen, and Glasgow, with Edinburgh the most decentralised. In terms of trends over time, Glasgow and Dundee both show steadily declining RCI between SIMD releases, whereas for Aberdeen and Edinbugh RCI values increased from 2004 to 2006, before declining in 2009 and 2012. From 2009 onwards Edinburgh has negative RCI scores, suggesting a peripheralisation rather than centralisation of poverty.
 
-The plot of changes in D over time is shown below
+The equivalent graph for the Dissimilarity index is shown below:
 
 
 ```{r plot_change_d, eval = TRUE, echo = FALSE, warning = FALSE}
 # Do D graph
 
-posterior_summaries %>% 
-  filter(measure == "D") %>% 
-  mutate(period = as.factor(period)) %>% 
-  ggplot(., 
-         aes(
-           x = period, group = place, 
-           y = median, colour = place,
-           shape = place)) + 
-  geom_line() + geom_point() + 
-  scale_y_continuous(limits = c(0, 0.5) ) +
-  geom_line(aes(y = upper), linetype = "dashed") + 
-  geom_line(aes(y = lower), linetype = "dashed") + 
+all_posteriors %>% 
+  filter(measure == "D")   %>% 
+  group_by(place, period)  %>% 
+  mutate(med_val = median(value))  %>%  
+  mutate(pp = paste0(place, period))  %>% 
+  ggplot(.) + 
+  geom_violin(
+    aes(x = factor(period), y = value, group = pp, fill = place), 
+    alpha = 0.2, position = "identity"
+  ) + 
+  geom_line(
+    aes(x = factor(period), y = med_val, group = place, colour = place), 
+    size = 1.1, linetype = "dashed"
+  ) + 
+  geom_point(
+    aes(x = factor(period), y = med_val, shape = place, colour = place), 
+    size = 3.5
+  ) + 
   labs(
-    y = "D of income deprived", x = "Year", 
-    title = "Change in D", 
-    colour = "City", shape = "City") +
-  theme(legend.position = c(0.8, 0.8))
-
+    x = "Year", y = "D", colour = "City", shape = "City", 
+    fill = "City", title = "Change in D scores over time")
 
 ```
 
+As with RCI, Dissimilarity scores have also fallen over time for all four cities. The greatest contrast in the trends is between Aberdeen and Edinburgh. In 2004 both cities had similar and overlapping D scores, but between 2004 and 2009 D fell rapidly for Edinburgh, while remaining fairly stable in Aberdeen, before falling from 2009 to 2012. Glasgow has always had the lowest D scores of the four cities, and Dundee the highest, but since 2009 the distribution of D estimates for Edinburgh have started to overlap those of Glasgow as the rate of decline in D has been slightly greater in Edinburgh than Glasgow. 
 Similarly, the the greatest fall in D occurred between 2006 and 2009. 
 
 
@@ -587,6 +598,29 @@ There were indications in the maps above that the greatest changes occurred betw
 The first of the plots, 2004 compared with 2012, shows strong spatial dependence in areas with low to moderate ID proportions, but much less temporal dependence in areas with high ID proportions in 2004. The second subfigure plots 2004 against 2006 values, and shows a near linear temporal dependence for the complete range of 2004 values, with a global trend towards lower ID proportions throughout Scotland.  The temporal relationship between 2006 and 2009 starts to become nonlinear at the upper range of 2006 values, and this nonlinearity at the upper range becomes much stronger between 2009 and 2012. 
 
 These plots indicate a complex change in the temporal dependence of ID proportions, likely occurring over the period 2008 to 2012. SIMD 2016 values will be invaluable in indicating whether these changes have continued, altered or settled between 2012 and 2016.
+
+
+## Table of average proportion income deprived by year 
+
+Below is a table showing the percentage if the population in each city (within 15 km of the centre) defined as 'income deprived' according to SIMD. In 2004 these percentages ranged from 9.8% in Aberdeen to 20.8% in Glasgow. By 2012 they had fallen to 7.9% in Aberdeen to 17.1% om Glasgow. In every city except Aberdeen the percentage increased from 2006 to 2009, as would be expected given the onset of the 2008 recession within this period, but then fell again from the 2009 to the 2012 SIMD release. 
+
+```{r id_prop_by_year, eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+  simd_2011_reweighted  %>% 
+    ungroup() %>%  
+    left_join(centre_distance, by = c("dz_2011" = "datazone")) %>%
+    filter(distance_to_centre < 15000) %>% 
+    group_by(nearest_centre, year) %>% 
+    summarise(pop_total = sum(pop_total), pop_incomedeprived = sum(pop_incomedeprived)) %>% 
+    mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+    mutate(prop_id = 100 * round(prop_id, 3)) %>% 
+    select(City = nearest_centre, prop_id, Year = year) %>% 
+    spread(Year, prop_id) %>% 
+    ungroup() %>% 
+    arrange(`2004`) %>% 
+    kable(., format = "markdown", caption = "Income deprived % by City and Year")
+
+```
+
 
 ## Plots of the distance/deprivation relationship 
 
