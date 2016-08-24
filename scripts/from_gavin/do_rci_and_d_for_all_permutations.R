@@ -77,14 +77,16 @@ do_model <- function(place, initial_dist = 18000){
     as.integer(dz_city@data$pop_id_2004),
     as.integer(dz_city@data$pop_id_2006), 
     as.integer(dz_city@data$pop_id_2009), 
-    as.integer(dz_city@data$pop_id_2012) 
+    as.integer(dz_city@data$pop_id_2012),
+    as.integer(dz_city@data$pop_id_2012) # placeholder for new data
   )
   
   N.mat <- cbind(
     as.integer(dz_city@data$pop_total_2004),
     as.integer(dz_city@data$pop_total_2006), 
     as.integer(dz_city@data$pop_total_2009), 
-    as.integer(dz_city@data$pop_total_2012) 
+    as.integer(dz_city@data$pop_total_2012),
+    as.integer(dz_city@data$pop_total_2012) # placeholder for new data
   )
 
 
@@ -102,23 +104,28 @@ do_model <- function(place, initial_dist = 18000){
   Y <- Y.mat[,4] ; N <- N.mat[,4]
   model_04 <- S.CARleroux(Y ~ 1, trials = N, W = W, family = "binomial", burnin = burnin, n.sample = n.sample, thin = thin )  
   
-
+  #placeholder for new data 
+  Y <- Y.mat[,5] ; N <- N.mat[,5]
+  model_05 <- S.CARleroux(Y ~ 1, trials = N, W = W, family = "binomial", burnin = burnin, n.sample = n.sample, thin = thin )  
+  
 #  model$summary.results
   
   #### Compute the coordinates and ordering from the city centre
   dist.order <- order(dz_city@data$distance_to_centre)
   
   #### Compute the global RCI and D
-  indicators.post <- array(NA, c(n.keep,8))
+  indicators.post <- array(NA, c(n.keep,10))
   colnames(indicators.post) <- c(
-    "RCI_2004", "RCI_2006","RCI_2009","RCI_2012", 
-    "D_2004", "D_2006", "D_2009", "D_2012"
+    "RCI_2004", "RCI_2006","RCI_2009","RCI_2012", "RCI_2015", 
+    "D_2004", "D_2006", "D_2009", "D_2012", "D_2015"
   )
   
   all_2004 <- as.integer(N.mat[,1])
   all_2006 <- as.integer(N.mat[,2])
   all_2009 <- as.integer(N.mat[,3])
   all_2012 <- as.integer(N.mat[,4])
+  all_2015 <- as.integer(N.mat[,5]) # placeholder for new data 
+  
   
   for(i in 1:n.keep)
   {
@@ -145,30 +152,39 @@ do_model <- function(place, initial_dist = 18000){
     prob.mat_04 <- matrix(prob_04, nrow=n, byrow=TRUE)
     fitted.mat_04 <- N.mat[,4] * prob.mat_04
     
+    #Placeholder for new data 
+    logit_05 <- model_05$samples$beta[i, ] + model_05$samples$phi[i, ]
+    prob_05 <- exp(logit_05) / (1 + exp(logit_05))
+    prob.mat_05 <- matrix(prob_05, nrow=n, byrow=TRUE)
+    fitted.mat_05 <- N.mat[,5] * prob.mat_05
     
     ## Compute the RCI for both years
     indicators.post[i, 1] <- RCI(fitted.mat_01, as.integer(N.mat[,1]), dist.order)
     indicators.post[i, 2] <- RCI(fitted.mat_02, as.integer(N.mat[,2]), dist.order)
     indicators.post[i, 3] <- RCI(fitted.mat_03, as.integer(N.mat[,3]), dist.order)
     indicators.post[i, 4] <- RCI(fitted.mat_04, as.integer(N.mat[,4]), dist.order)
-    
-    ## Compute D for both years
+    indicators.post[i, 5] <- RCI(fitted.mat_05, as.integer(N.mat[,5]), dist.order) # placeholder
+
+        ## Compute D for both years
     p_2004 <- prob.mat_01
     p_2004_av <- sum(p_2004 * all_2004) / sum(all_2004)
-    indicators.post[i, 5] <- sum(all_2004 * abs(p_2004 - p_2004_av)) / (2 * sum(all_2004) * p_2004_av * (1-p_2004_av))   
+    indicators.post[i, 6] <- sum(all_2004 * abs(p_2004 - p_2004_av)) / (2 * sum(all_2004) * p_2004_av * (1-p_2004_av))   
     
     p_2006 <- prob.mat_02
     p_2006_av <- sum(p_2006 * all_2006) / sum(all_2006)
-    indicators.post[i, 6] <- sum(all_2006 * abs(p_2006 - p_2006_av)) / (2 * sum(all_2006) * p_2006_av * (1-p_2006_av))   
+    indicators.post[i, 7] <- sum(all_2006 * abs(p_2006 - p_2006_av)) / (2 * sum(all_2006) * p_2006_av * (1-p_2006_av))   
     
     p_2009 <- prob.mat_03
     p_2009_av <- sum(p_2009 * all_2009) / sum(all_2009)
-    indicators.post[i, 7] <- sum(all_2009 * abs(p_2009 - p_2009_av)) / (2 * sum(all_2009) * p_2009_av * (1-p_2009_av))   
+    indicators.post[i, 8] <- sum(all_2009 * abs(p_2009 - p_2009_av)) / (2 * sum(all_2009) * p_2009_av * (1-p_2009_av))   
     
     p_2012 <- prob.mat_04
     p_2012_av <- sum(p_2012 * all_2012) / sum(all_2012)
-    indicators.post[i, 8] <- sum(all_2012 * abs(p_2012 - p_2012_av)) / (2 * sum(all_2012) * p_2012_av * (1-p_2012_av))   
+    indicators.post[i, 9] <- sum(all_2012 * abs(p_2012 - p_2012_av)) / (2 * sum(all_2012) * p_2012_av * (1-p_2012_av))   
     
+    p_2015 <- prob.mat_04
+    p_2015_av <- sum(p_2015 * all_2015) / sum(all_2015)
+    indicators.post[i, 10] <- sum(all_2015 * abs(p_2015 - p_2015_av)) / (2 * sum(all_2015) * p_2015_av * (1-p_2015_av))   
     
   }
   
