@@ -1,8 +1,9 @@
 ---
-title: "The Suburbanisation of Poverty in Scotland’s Cities: Urban Regeneration or Social Cleansing?"
+title: 'The Suburbanisation of Poverty in Scotland’s Cities: Urban Regeneration or
+  Social Cleansing?'
 author: "Jon Minton & Nick Bailey"
 date: "31 August 2016"
-output: html_document
+output: word_document
 ---
 
 ```{r setup01, include=TRUE, echo = FALSE, message = FALSE, warning = FALSE}
@@ -65,18 +66,19 @@ AQMeN and ESRC funding.
 *	[CHECK] The main reason for this change is likely to be the continued reductions in housing subsidies for lower income households. The last 20 years have seen the loss of social rented housing and greater reliance on private renting, combined with the reductions in housing benefits. As a result, inner city locations appear to be increasingly beyond the reach of poorer households. 
 
 ```{r id_props, eval = TRUE, echo = FALSE, cache = FALSE, message = FALSE, warning = FALSE}
+
 simd_2011_reweighted  %>% 
     ungroup() %>%  
     left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
     distinct() %>%
     rename(City = nearest_centre) %>% 
     filter(City %in% c("Aberdeen", "Dundee", "Edinburgh", "Glasgow")) %>% 
-    mutate(centralness = cut(
-      distance_to_centre, 
-      breaks = c(0, 8000, 20000, Inf), 
-      labels = c("centre", "periphery", "exurb"))
-    ) %>% 
-  filter(centralness != "exurb") %>% 
+    mutate(
+      lower_thresh = ifelse(City %in% c("Aberdeen", "Dundee"), 3200, 5000),
+      centralness = ifelse(distance_to_centre < 20000, "periphery", "exurb"),
+      centralness = ifelse(distance_to_centre < lower_thresh, "centre", centralness)
+      ) %>% dplyr::select(-lower_thresh) %>% 
+  filter(centralness %in% c("centre", "periphery")) %>% 
   group_by(City, year, centralness) %>%
   mutate(pop_nonid = pop_total - pop_incomedeprived) %>% 
   summarise(pop_nonid = sum(pop_nonid), pop_incomedeprived = sum(pop_incomedeprived)) %>% 
@@ -94,7 +96,7 @@ tmp %>% filter(type == "Income Deprived") %>%
          ) + 
   geom_line() + geom_point() +
   facet_wrap( ~ City, nrow = 2, scales = "free_y") + 
-  labs(x = "Year", y = "Proportion", title = "Proportion income deprived within 8km of Centre")
+  labs(x = "Year", y = "Proportion", title = "Proportion income deprived near City Centre")
 
 tmp %>% filter(type == "Not Income Deprived") %>% 
   ggplot(., 
@@ -104,7 +106,7 @@ tmp %>% filter(type == "Not Income Deprived") %>%
          ) + 
   geom_line() + geom_point() +
   facet_wrap( ~ City, nrow = 2, scales = "free_y") + 
-  labs(x = "Year", y = "Proportion", title = "Proportion Not income deprived within 8km of Centre")
+  labs(x = "Year", y = "Proportion", title = "Proportion Not income deprived near City Centre")
 
 
 ```
@@ -163,10 +165,13 @@ SIMD data releases for 2004, 2006, 2009, 2012 and 2016 were downloaded from the 
 
 The analysis involved the following preparatory stages:
 
+*	Converting data for 2004 to 2012 SIMDs from 2001 Datazones to 2011 Datazones.
 *	Allocating Datazones to cities by defining a centroid for city, identifying the closest centroid for each Datazone and then applying a cut-off distance of around 18-20kms.
 
-*	Converting data for 2004 to 2012 SIMDs from 2001 Datazones to 2011 Datazones.
 
+### Converting from 2001 to 2011 Datazones
+
+Income deprived and total population counts were converted from 2001 to 2011 Datazone boundaries using a lookup file developed by [Paul Norman](http://www.geog.leeds.ac.uk/people/p.norman). That allowed weights to be produced, based on census output area overlap, allowing weighted 2011 population count estimates to be produced from counts enumerated at 2001 datazone level, based on the level of overlap between 2001 and 2011 datazones. Further details about the lookup file are available from [Paul Norman](p.d.norman@leeds.ac.uk) and the code used to perform the reweighting is reproduced below.
 
 
 ### Allocating Datazones to cities
@@ -205,11 +210,7 @@ map_nearest_centre
 As this map indicates, places in the Orkney and Shetland Islands, and elsewhere in the remote and rural highlands and islands, get assigned to either Aberdeen or Inverness, even though they are not part of any meaningful functional urban geography. However these areas are easily identifiable through their absolute distance from either centre. For the analyses below, we restrict our definition of cities to Datazones within around 20km of the city centroid. (Strictly speaking, we start with a cut-off of 18km but allow this to expand where this process results in ‘islands’ or individual Datazones disconnected from the rest of the city.)
 
 
-### Converting from 2001 to 2011 Datazones
 
-[was this done after the previous stage or before? Would have thought before]
-
-Income deprived and total population counts were converted from 2001 to 2011 Datazone boundaries using a lookup file developed by [Paul Norman](http://www.geog.leeds.ac.uk/people/p.norman). That allowed weights to be produced, based on census output area overlap, allowing weighted 2011 population count estimates to be produced from counts enumerated at 2001 datazone level, based on the level of overlap between 2001 and 2011 datazones. Further details about the lookup file are available from [Paul Norman](p.d.norman@leeds.ac.uk) and the code used to perform the reweighting is reproduced below.
 
 # Results
 
@@ -230,19 +231,19 @@ The maps shows the proportion of the population who are classified as Income Dep
 
 ```{r show_id_map, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
 simd_2011_reweighted %>% 
-  select(dz_2011, year, pop_incomedeprived, pop_total) %>%
+  dplyr::select(dz_2011, year, pop_incomedeprived, pop_total) %>%
   mutate(prop_id = pop_incomedeprived / pop_total) %>% 
   mutate(prop_id = ifelse(prop_id > 0.5, 0.5, prop_id)) %>% 
-  select(dz_2011, year, prop_id) %>% 
+  dplyr::select(dz_2011, year, prop_id) %>% 
   spread(year, prop_id) %>% 
   append_data(
     shp = dz_2011, data = . ,
     key.shp = "DataZone", key.data = "dz_2011", ignore.na = T
   ) %>% 
   tm_shape(.) + 
-  tm_facets(ncol = 2) + 
+  tm_facets(ncol = 3) + 
   tm_fill(
-    col = c("2004", "2006", "2009", "2012"), 
+    col = c("2004", "2006", "2009", "2012", "2016"), 
     palette = brewer.pal(10, "Spectral"), 
     breaks = seq(0, 0.5, by = 0.05), showNA = F
     ) -> id_chor_dz2011
@@ -255,14 +256,14 @@ The map below focuses in on income deprivation within Glasgow, and in particular
 ```{r show_id_map_glasgow, echo = F, eval = T, message = FALSE, warning = FALSE}
 
 simd_2011_reweighted %>% 
-  select(dz_2011, year, pop_incomedeprived, pop_total) %>%
+  dplyr::select(dz_2011, year, pop_incomedeprived, pop_total) %>%
   mutate(prop_id = pop_incomedeprived / pop_total) %>% 
   mutate(prop_id = ifelse(prop_id > 0.5, 0.5, prop_id)) %>% 
-  select(dz_2011, year, prop_id) %>% 
+  dplyr::select(dz_2011, year, prop_id) %>% 
   left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
   filter(nearest_centre == "Glasgow") %>% 
   filter(distance_to_centre < 15000) %>% 
-  select(dz_2011, year, prop_id) %>% 
+  dplyr::select(dz_2011, year, prop_id) %>% 
   spread(year, prop_id) %>% 
   append_data(
     shp = dz_2011, data = . ,
@@ -272,9 +273,9 @@ simd_2011_reweighted %>%
 shp_jn <- shp_jn[!is.na(shp_jn$`2004`), ]
 shp_jn %>% 
   tm_shape(.) + 
-  tm_facets(ncol = 2) + 
+  tm_facets(ncol = 3) + 
   tm_fill(
-    col = c("2004", "2006", "2009", "2012"), 
+    col = c("2004", "2006", "2009", "2012", "2016"), 
     palette = brewer.pal(10, "Spectral"), 
     breaks = seq(0, 0.5, by = 0.05), showNA = F
     ) +
@@ -291,14 +292,14 @@ An equivalent map for Edinburgh is produced below. This map also suggests that, 
 ```{r show_id_map_edinburgh, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
 
 simd_2011_reweighted %>% 
-  select(dz_2011, year, pop_incomedeprived, pop_total) %>%
+  dplyr::select(dz_2011, year, pop_incomedeprived, pop_total) %>%
   mutate(prop_id = pop_incomedeprived / pop_total) %>% 
   mutate(prop_id = ifelse(prop_id > 0.5, 0.5, prop_id)) %>% 
-  select(dz_2011, year, prop_id) %>% 
+  dplyr::select(dz_2011, year, prop_id) %>% 
   left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
   filter(nearest_centre == "Edinburgh") %>% 
   filter(distance_to_centre < 15000) %>% 
-  select(dz_2011, year, prop_id) %>% 
+  dplyr::select(dz_2011, year, prop_id) %>% 
   spread(year, prop_id) %>% 
   append_data(
     shp = dz_2011, data = . ,
@@ -308,9 +309,9 @@ simd_2011_reweighted %>%
 shp_jn <- shp_jn[!is.na(shp_jn$`2004`), ]
 shp_jn %>% 
   tm_shape(.) + 
-  tm_facets(ncol = 2) + 
+  tm_facets(ncol = 3) + 
   tm_fill(
-    col = c("2004", "2006", "2009", "2012"), 
+    col = c("2004", "2006", "2009", "2012", "2016"), 
     palette = brewer.pal(10, "Spectral"), 
     breaks = seq(0, 0.5, by = 0.05), showNA = F
     ) +
@@ -325,14 +326,14 @@ The equivalent map for Dundee is shown below. Within Dundee the patterns of spat
 ```{r show_id_map_dundee, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
 
 simd_2011_reweighted %>% 
-  select(dz_2011, year, pop_incomedeprived, pop_total) %>%
+  dplyr::select(dz_2011, year, pop_incomedeprived, pop_total) %>%
   mutate(prop_id = pop_incomedeprived / pop_total) %>% 
   mutate(prop_id = ifelse(prop_id > 0.5, 0.5, prop_id)) %>% 
-  select(dz_2011, year, prop_id) %>% 
+  dplyr::select(dz_2011, year, prop_id) %>% 
   left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
   filter(nearest_centre == "Dundee") %>% 
   filter(distance_to_centre < 15000) %>% 
-  select(dz_2011, year, prop_id) %>% 
+  dplyr::select(dz_2011, year, prop_id) %>% 
   spread(year, prop_id) %>% 
   append_data(
     shp = dz_2011, data = . ,
@@ -342,9 +343,9 @@ simd_2011_reweighted %>%
 shp_jn <- shp_jn[!is.na(shp_jn$`2004`), ]
 shp_jn %>% 
   tm_shape(.) + 
-  tm_facets(ncol = 2) + 
+  tm_facets(ncol = 3) + 
   tm_fill(
-    col = c("2004", "2006", "2009", "2012"), 
+    col = c("2004", "2006", "2009", "2012", "2016"), 
     palette = brewer.pal(10, "Spectral"), 
     breaks = seq(0, 0.5, by = 0.05), showNA = F
     ) +
@@ -359,14 +360,14 @@ The equivalent map for Aberdeen, historically the most affluent and rural of the
 ```{r show_id_map_aberdeen, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
 
 simd_2011_reweighted %>% 
-  select(dz_2011, year, pop_incomedeprived, pop_total) %>%
+  dplyr::select(dz_2011, year, pop_incomedeprived, pop_total) %>%
   mutate(prop_id = pop_incomedeprived / pop_total) %>% 
   mutate(prop_id = ifelse(prop_id > 0.5, 0.5, prop_id)) %>% 
-  select(dz_2011, year, prop_id) %>% 
+  dplyr::select(dz_2011, year, prop_id) %>% 
   left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
   filter(nearest_centre == "Aberdeen") %>% 
   filter(distance_to_centre < 15000) %>% 
-  select(dz_2011, year, prop_id) %>% 
+  dplyr::select(dz_2011, year, prop_id) %>% 
   spread(year, prop_id) %>% 
   append_data(
     shp = dz_2011, data = . ,
@@ -376,9 +377,9 @@ simd_2011_reweighted %>%
 shp_jn <- shp_jn[!is.na(shp_jn$`2004`), ]
 shp_jn %>% 
   tm_shape(.) + 
-  tm_facets(ncol = 2) + 
+  tm_facets(ncol = 3) + 
   tm_fill(
-    col = c("2004", "2006", "2009", "2012"), 
+    col = c("2004", "2006", "2009", "2012", "2016"), 
     palette = brewer.pal(10, "Spectral"), 
     breaks = seq(0, 0.5, by = 0.05), showNA = F
     ) +
@@ -394,26 +395,27 @@ id_chor_dz2011_aberdeen
 The following plot shows scatterplots of the ID proportions in each Scottish datazone in 2004, 2009 and 2012. Within these plots the blue line indicates parity between values on the x and y axis, and the red dashed line shows a nonlinear smoother function between the two ID proportions being plotted, and hence the level of deviation between the actual relationship over the two years and parity. 
 
 ```{r show_temporal_dep, echo = FALSE, warning = FALSE, EVAL = TRUE}
-
 simd_2011_reweighted %>% 
-  filter(year %in% c(2004, 2012)) %>% 
+  filter(year %in% c(2004, 2016)) %>% 
   mutate(prop_id = pop_incomedeprived / pop_total) %>% 
-  select(dz_2011, year, prop_id) %>% 
+  dplyr::select(dz_2011, year, prop_id) %>% 
   spread(year, prop_id) %>% 
-  rename(prop_id_2004 = `2004`, prop_id_2012 = `2012`) %>% 
-  ggplot(., aes(x = prop_id_2004, y = prop_id_2012)) + 
+  rename(prop_id_2004 = `2004`, prop_id_2016 = `2016`) %>% 
+  ggplot(., aes(x = prop_id_2004, y = prop_id_2016)) + 
   geom_point(alpha = 0.1) + 
   geom_abline(colour = "blue", slope = 1, intercept = 0) + 
   stat_smooth(colour = "red", linetype = "dashed") + 
   labs(
-    x = "ID prop, 2004", y = "ID prop, 2012",
-    title = "2012 against 2004"
-       ) -> s_04_12
+    x = "ID prop, 2004", y = "ID prop, 2016",
+    title = "2016 against 2004"
+       ) -> s_04_16
+
+
 
 simd_2011_reweighted %>% 
   filter(year %in% c(2004, 2006)) %>% 
   mutate(prop_id = pop_incomedeprived / pop_total) %>% 
-  select(dz_2011, year, prop_id) %>% 
+  dplyr::select(dz_2011, year, prop_id) %>% 
   spread(year, prop_id) %>% 
   rename(prop_id_2004 = `2004`, prop_id_2006 = `2006`) %>% 
   ggplot(., aes(x = prop_id_2004, y = prop_id_2006)) + 
@@ -429,7 +431,7 @@ simd_2011_reweighted %>%
 simd_2011_reweighted %>% 
   filter(year %in% c(2006, 2009)) %>% 
   mutate(prop_id = pop_incomedeprived / pop_total) %>% 
-  select(dz_2011, year, prop_id) %>% 
+  dplyr::select(dz_2011, year, prop_id) %>% 
   spread(year, prop_id) %>% 
   rename(prop_id_2006 = `2006`, prop_id_2009 = `2009`) %>% 
   ggplot(., aes(x = prop_id_2006, y = prop_id_2009)) + 
@@ -445,7 +447,7 @@ simd_2011_reweighted %>%
 simd_2011_reweighted %>% 
   filter(year %in% c(2009, 2012)) %>% 
   mutate(prop_id = pop_incomedeprived / pop_total) %>% 
-  select(dz_2011, year, prop_id) %>% 
+  dplyr::select(dz_2011, year, prop_id) %>% 
   spread(year, prop_id) %>% 
   rename(prop_id_2009 = `2009`, prop_id_2012 = `2012`) %>% 
   ggplot(., aes(x = prop_id_2009, y = prop_id_2012)) + 
@@ -457,7 +459,22 @@ simd_2011_reweighted %>%
     title = "2012 against 2009"
   ) -> s_09_12
 
-plot_grid(s_04_12, s_04_06, s_06_09, s_09_12, nrow = 2)
+simd_2011_reweighted %>% 
+  filter(year %in% c(2012, 2016)) %>% 
+  mutate(prop_id = pop_incomedeprived / pop_total) %>% 
+  dplyr::select(dz_2011, year, prop_id) %>% 
+  spread(year, prop_id) %>% 
+  rename(prop_id_2012 = `2012`, prop_id_2016 = `2016`) %>% 
+  ggplot(., aes(x = prop_id_2012, y = prop_id_2016)) + 
+  geom_point(alpha = 0.1) + 
+  geom_abline(colour = "blue", slope = 1, intercept = 0) + 
+  stat_smooth(colour = "red", linetype = "dashed") + 
+  labs(
+    x = "ID prop, 2012", y = "ID prop, 2016",
+    title = "2016 against 2012"
+  ) -> s_12_16
+
+plot_grid(s_04_16, s_04_06, s_06_09, s_09_12, s_12_16, nrow = 2)
 
 
 ```
@@ -481,11 +498,50 @@ Below is a table showing the percentage if the population in each city (within 1
     summarise(pop_total = sum(pop_total), pop_incomedeprived = sum(pop_incomedeprived)) %>% 
     mutate(prop_id = pop_incomedeprived / pop_total) %>% 
     mutate(prop_id = 100 * round(prop_id, 3)) %>% 
-    select(City = nearest_centre, prop_id, Year = year) %>% 
+    dplyr::select(City = nearest_centre, prop_id, Year = year) %>% 
     spread(Year, prop_id) %>% 
     ungroup() %>% 
     arrange(`2004`) %>% 
     kable(., format = "markdown", caption = "Income deprived % by City and Year")
+
+```
+
+The size of the income deprived population is shown below:
+
+```{r id_size_by_year, eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+  simd_2011_reweighted  %>% 
+    ungroup() %>%  
+    left_join(centre_distance, by = c("dz_2011" = "datazone")) %>%
+    filter(distance_to_centre < 15000) %>% 
+    group_by(nearest_centre, year) %>% 
+    summarise(pop_incomedeprived = sum(pop_incomedeprived)) %>% 
+    dplyr::select(City = nearest_centre, pop_incomedeprived, Year = year) %>% 
+   mutate(pop_incomedeprived = round(pop_incomedeprived, 0)) %>% 
+    spread(Year, pop_incomedeprived) %>% 
+    ungroup() %>% 
+    arrange(`2004`) %>% 
+    kable(., format = "markdown", caption = "Income deprived size by City and Year")
+
+```
+
+And the size of the non-income deprived population is shown below:
+
+```{r non_id_size_by_year, eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+  simd_2011_reweighted  %>% 
+    ungroup() %>%  
+    left_join(centre_distance, by = c("dz_2011" = "datazone")) %>%
+    filter(distance_to_centre < 15000) %>% 
+    group_by(nearest_centre, year) %>% 
+    summarise(pop_incomedeprived = sum(pop_incomedeprived),
+              pop_total = sum(pop_total)
+              ) %>%
+    mutate(pop_nonincomedeprived = pop_total - pop_incomedeprived) %>% 
+    dplyr::select(City = nearest_centre, pop_nonincomedeprived, Year = year) %>% 
+   mutate(pop_nonincomedeprived = round(pop_nonincomedeprived, 0)) %>% 
+    spread(Year, pop_nonincomedeprived) %>% 
+    ungroup() %>% 
+    arrange(`2004`) %>% 
+    kable(., format = "markdown", caption = "Non-Income deprived size by City and Year")
 
 ```
 
@@ -503,10 +559,10 @@ posterior_summaries %>%
   ungroup() %>% 
   filter(place == "Aberdeen", measure == "RCI") %>% 
   gather(key = "bound", value = "value", lower:upper) %>% 
-  select(period, bound, value) %>% 
+  dplyr::select(period, bound, value) %>% 
   mutate(value = round(value, 3)) %>% 
   spread(bound, value) %>% 
-  select(period, median, lower, upper) %>% 
+  dplyr::select(period, median, lower, upper) %>% 
   kable(., format = "markdown", caption = "RCI, Aberdeen")
 
 ```
@@ -518,10 +574,10 @@ posterior_summaries %>%
   ungroup() %>% 
   filter(place == "Dundee", measure == "RCI") %>% 
   gather(key = "bound", value = "value", lower:upper) %>% 
-  select(period, bound, value) %>% 
+  dplyr::select(period, bound, value) %>% 
   mutate(value = round(value, 3)) %>% 
   spread(bound, value) %>% 
-  select(period, median, lower, upper) %>% 
+  dplyr::select(period, median, lower, upper) %>% 
   kable(., format = "markdown", caption = "RCI, Dundee")
 
 ```
@@ -533,10 +589,10 @@ posterior_summaries %>%
   ungroup() %>% 
   filter(place == "Edinburgh", measure == "RCI") %>% 
   gather(key = "bound", value = "value", lower:upper) %>% 
-  select(period, bound, value) %>% 
+  dplyr::select(period, bound, value) %>% 
   mutate(value = round(value, 3)) %>% 
   spread(bound, value) %>% 
-  select(period, median, lower, upper) %>% 
+  dplyr::select(period, median, lower, upper) %>% 
   kable(., format = "markdown", caption = "RCI, Edinburgh")
 
 ```
@@ -548,10 +604,10 @@ posterior_summaries %>%
   ungroup() %>% 
   filter(place == "Glasgow", measure == "RCI") %>% 
   gather(key = "bound", value = "value", lower:upper) %>% 
-  select(period, bound, value) %>% 
+  dplyr::select(period, bound, value) %>% 
   mutate(value = round(value, 3)) %>% 
   spread(bound, value) %>% 
-  select(period, median, lower, upper) %>% 
+  dplyr::select(period, median, lower, upper) %>% 
   kable(., format = "markdown", caption = "RCI, Glasgow")
 
 ```
@@ -569,10 +625,10 @@ posterior_summaries %>%
   ungroup() %>% 
   filter(place == "Aberdeen", measure == "D") %>% 
   gather(key = "bound", value = "value", lower:upper) %>% 
-  select(period, bound, value) %>% 
+  dplyr::select(period, bound, value) %>% 
   mutate(value = round(value, 3)) %>% 
   spread(bound, value) %>% 
-  select(period, median, lower, upper) %>% 
+  dplyr::select(period, median, lower, upper) %>% 
   kable(., format = "markdown", caption = "D, Aberdeen")
 
 ```
@@ -584,10 +640,10 @@ posterior_summaries %>%
   ungroup() %>% 
   filter(place == "Dundee", measure == "D") %>% 
   gather(key = "bound", value = "value", lower:upper) %>% 
-  select(period, bound, value) %>% 
+  dplyr::select(period, bound, value) %>% 
   mutate(value = round(value, 3)) %>% 
   spread(bound, value) %>% 
-  select(period, median, lower, upper) %>% 
+  dplyr::select(period, median, lower, upper) %>% 
   kable(., format = "markdown", caption = "D, Dundee")
 
 ```
@@ -599,10 +655,10 @@ posterior_summaries %>%
   ungroup() %>% 
   filter(place == "Edinburgh", measure == "D") %>% 
   gather(key = "bound", value = "value", lower:upper) %>% 
-  select(period, bound, value) %>% 
+  dplyr::select(period, bound, value) %>% 
   mutate(value = round(value, 3)) %>% 
   spread(bound, value) %>% 
-  select(period, median, lower, upper) %>% 
+  dplyr::select(period, median, lower, upper) %>% 
   kable(., format = "markdown", caption = "D, Edinburgh")
 
 ```
@@ -614,10 +670,10 @@ posterior_summaries %>%
   ungroup() %>% 
   filter(place == "Glasgow", measure == "D") %>% 
   gather(key = "bound", value = "value", lower:upper) %>% 
-  select(period, bound, value) %>% 
+  dplyr::select(period, bound, value) %>% 
   mutate(value = round(value, 3)) %>% 
   spread(bound, value) %>% 
-  select(period, median, lower, upper) %>% 
+  dplyr::select(period, median, lower, upper) %>% 
   kable(., format = "markdown", caption = "D, Glasgow")
 
 ```
@@ -708,13 +764,14 @@ decent_plot_for_city <- function(this_city){
     filter(nearest_centre == this_city) %>%
     distinct() %>% 
     mutate(prop_id = pop_incomedeprived / pop_total) %>% 
-    select(dz_2011, distance_to_centre, year, prop_id) %>% 
-    mutate(distance_to_centre = distance_to_centre / 1000) %>% 
+    dplyr::select(dz_2011, distance_to_centre, year, prop_id) %>% 
+    mutate(distance_to_centre = distance_to_centre / 1000) %>%
+    filter(distance_to_centre < 30) %>% 
     spread(year, prop_id) %>% 
-    mutate(change = `2012` - `2004`) %>% 
+    mutate(change = `2016` - `2004`) %>% 
     ggplot(., aes(x = distance_to_centre, y = change)) + 
     geom_point( alpha = 0.01) + 
-    scale_x_log10(limits = c(0.5, 50), breaks = c(0.5, 1, 2, 5, 10, 20, 50)) + 
+    scale_x_continuous(limits = c(0.5, 30), breaks = c(0.5, 1, 2, 5, 10, 20)) + 
     scale_y_continuous(limits = c(-0.25, 0.25) ) +
     stat_smooth() + 
     geom_hline(aes(yintercept = 0), linetype = "dashed") + 
@@ -751,10 +808,10 @@ idpopchange_plot_for_city <- function(this_city){
     left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
     filter(nearest_centre == this_city) %>%
     distinct() %>% 
-    select(dz_2011, distance_to_centre, year, pop_incomedeprived) %>% 
+    dplyr::select(dz_2011, distance_to_centre, year, pop_incomedeprived) %>% 
     mutate(distance_to_centre = distance_to_centre / 1000) %>% 
     spread(year, pop_incomedeprived) %>% 
-    mutate(change = (`2012` / `2004`) - 1) %>% 
+    mutate(change = (`2016` / `2004`) - 1) %>% 
     ggplot(., aes(x = distance_to_centre, y = change)) + 
     geom_point( alpha = 0.01) + 
     scale_x_log10(limits = c(0.5, 50), breaks = c(0.5, 1, 2, 5, 10, 20, 50)) + 
@@ -787,10 +844,10 @@ totalpopchange_plot_for_city <- function(this_city){
     left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
     filter(nearest_centre == this_city) %>%
     distinct() %>% 
-    select(dz_2011, distance_to_centre, year, pop_total) %>% 
+    dplyr::select(dz_2011, distance_to_centre, year, pop_total) %>% 
     mutate(distance_to_centre = distance_to_centre / 1000) %>% 
     spread(year, pop_total) %>% 
-    mutate(change = (`2012` / `2004`) - 1) %>% 
+    mutate(change = (`2016` / `2004`) - 1) %>% 
     ggplot(., aes(x = distance_to_centre, y = change)) + 
     geom_point( alpha = 0.01) + 
     scale_x_log10(limits = c(0.5, 50), breaks = c(0.5, 1, 2, 5, 10, 20, 50)) + 
@@ -839,12 +896,12 @@ simd_combined
 
 
 lkup  %>%
-  select(dz_2001, dz_2011)  %>%
+  dplyr::select(dz_2001, dz_2011)  %>%
   arrange(dz_2001, dz_2011)  %>%
   group_by(dz_2001, dz_2011)  %>%
   tally  %>% # produce n, giving number of OAs which contain particular groupings of dz_2001 and dz_2011
   arrange(dz_2011, dz_2001)  %>%
-  select(dz_2011, dz_2001, n)  %>%
+  dplyr::select(dz_2011, dz_2001, n)  %>%
   group_by(dz_2011)   %>%
   arrange(dz_2011, dz_2001) %>%
   mutate(weight = n / sum(n)) -> weighting
@@ -852,7 +909,7 @@ weighting
 
 weighting %>%  # Weighting by dz_2011
   left_join(simd_combined, by = c("dz_2001" = "datazone"))  %>%
-  select(-simd_rank)  %>%  # Not meaningful to reweight rank
+  dplyr::select(-simd_rank)  %>%  # Not meaningful to reweight rank
   group_by(dz_2011, year) %>%
   summarise_each( ~ sum(. * weight), 6:9) -> simd_2011_reweighted
 

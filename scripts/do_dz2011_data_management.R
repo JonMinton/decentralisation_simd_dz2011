@@ -5,23 +5,30 @@ simd_combined <- read_csv("data/simd/simd_combined.csv")
 # Paul Norman Lookup
 lkup <-  read_csv("data/paul_norman_file/paul_norman_dz2011_table.csv")
 
+# simd 2016 already dz2011, so exclude from reweighting below
 
+simd_older_combined <- simd_combined %>% filter(year != 2016)
 # Produce reweighted SIMD scores
 lkup  %>% 
-  select(dz_2001, dz_2011)  %>% 
+  dplyr::select(dz_2001, dz_2011)  %>% 
   arrange(dz_2001, dz_2011)  %>%  
   group_by(dz_2001, dz_2011)  %>% 
   tally  %>% # produce n, giving number of OAs which contain particular groupings of dz_2001 and dz_2011
   arrange(dz_2011, dz_2001)  %>% 
-  select(dz_2011, dz_2001, n)  %>% 
+  dplyr::select(dz_2011, dz_2001, n)  %>% 
   group_by(dz_2011)   %>% 
   arrange(dz_2011, dz_2001) %>% 
   mutate(weight = n / sum(n))   %>% # Weighting by dz_2011
-  left_join(simd_combined, by = c("dz_2001" = "datazone"))  %>% 
-  select(-simd_rank)  %>%  # Not meaningful to reweight rank
+  left_join(simd_older_combined, by = c("dz_2001" = "datazone"))  %>% 
+  dplyr::select(-simd_rank)  %>%  # Not meaningful to reweight rank
   group_by(dz_2011, year) %>% 
   summarise_each( ~ sum(. * weight, na.rm =T), 6:9) -> simd_2011_reweighted
 
+simd_2016_simplified <- simd_combined %>% 
+  filter(year == 2016) %>% 
+  dplyr::select(dz_2011 = datazone, year, pop_total, pop_workingage, pop_incomedeprived, simd_score)
+
+simd_2011_reweighted <- bind_rows(simd_2011_reweighted, simd_2016_simplified)
 
 # Shapefile for 2011
 dz_2011 <- read_shape(file = "shapefiles/SG_DataZoneBdry_2011/SG_DataZone_Bdry_2011.shp")

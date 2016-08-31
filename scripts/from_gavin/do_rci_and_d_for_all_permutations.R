@@ -37,15 +37,15 @@ do_model <- function(place, initial_dist = 18000){
   }
   
   simd_2011_reweighted %>% 
-    select(dz_2011, year, pop_total, pop_incomedeprived) -> tmp
+    dplyr::select(dz_2011, year, pop_total, pop_incomedeprived) -> tmp
   
   tmp %>% 
-    select(-pop_incomedeprived) %>% 
+    dplyr::select(-pop_incomedeprived) %>% 
     mutate(year = paste0("pop_total_", year)) %>% 
     spread(year, pop_total) -> pops
   
   tmp %>% 
-    select(-pop_total) %>% 
+    dplyr::select(-pop_total) %>% 
     mutate(year = paste0("pop_id_", year)) %>% 
     spread(year, pop_incomedeprived) -> incdeps
   
@@ -78,7 +78,7 @@ do_model <- function(place, initial_dist = 18000){
     as.integer(dz_city@data$pop_id_2006), 
     as.integer(dz_city@data$pop_id_2009), 
     as.integer(dz_city@data$pop_id_2012),
-    as.integer(dz_city@data$pop_id_2012) # placeholder for new data
+    as.integer(dz_city@data$pop_id_2016) 
   )
   
   N.mat <- cbind(
@@ -86,8 +86,13 @@ do_model <- function(place, initial_dist = 18000){
     as.integer(dz_city@data$pop_total_2006), 
     as.integer(dz_city@data$pop_total_2009), 
     as.integer(dz_city@data$pop_total_2012),
-    as.integer(dz_city@data$pop_total_2012) # placeholder for new data
+    as.integer(dz_city@data$pop_total_2016) 
   )
+  
+  denom_too_small <- N.mat[,5] < 1
+  N.mat[denom_too_small, 5] <- 1
+  
+  Y.mat[denom_too_small, 5] <- 0
 
 
   
@@ -116,15 +121,15 @@ do_model <- function(place, initial_dist = 18000){
   #### Compute the global RCI and D
   indicators.post <- array(NA, c(n.keep,10))
   colnames(indicators.post) <- c(
-    "RCI_2004", "RCI_2006","RCI_2009","RCI_2012", "RCI_2015", 
-    "D_2004", "D_2006", "D_2009", "D_2012", "D_2015"
+    "RCI_2004", "RCI_2006","RCI_2009","RCI_2012", "RCI_2016", 
+    "D_2004", "D_2006", "D_2009", "D_2012", "D_2016"
   )
   
   all_2004 <- as.integer(N.mat[,1])
   all_2006 <- as.integer(N.mat[,2])
   all_2009 <- as.integer(N.mat[,3])
   all_2012 <- as.integer(N.mat[,4])
-  all_2015 <- as.integer(N.mat[,5]) # placeholder for new data 
+  all_2016 <- as.integer(N.mat[,5]) # placeholder for new data 
   
   
   for(i in 1:n.keep)
@@ -182,9 +187,9 @@ do_model <- function(place, initial_dist = 18000){
     p_2012_av <- sum(p_2012 * all_2012) / sum(all_2012)
     indicators.post[i, 9] <- sum(all_2012 * abs(p_2012 - p_2012_av)) / (2 * sum(all_2012) * p_2012_av * (1-p_2012_av))   
     
-    p_2015 <- prob.mat_04
-    p_2015_av <- sum(p_2015 * all_2015) / sum(all_2015)
-    indicators.post[i, 10] <- sum(all_2015 * abs(p_2015 - p_2015_av)) / (2 * sum(all_2015) * p_2015_av * (1-p_2015_av))   
+    p_2016 <- prob.mat_04
+    p_2016_av <- sum(p_2016 * all_2016) / sum(all_2016)
+    indicators.post[i, 10] <- sum(all_2016 * abs(p_2016 - p_2016_av)) / (2 * sum(all_2016) * p_2016_av * (1-p_2016_av))   
     
   }
   
@@ -209,7 +214,7 @@ tidy_indicators <- function(mtrx, place){
     gather(mp, value, -draw) %>% 
     mutate(place = place) %>% 
     separate(mp, into = c("measure", "period")) %>% 
-    select(place, measure, period, draw, value)
+    dplyr::select(place, measure, period, draw, value)
 }
 
 tind_aberdeen <- tidy_indicators(indicators_aberdeen, "Aberdeen")

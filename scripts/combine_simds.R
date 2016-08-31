@@ -13,6 +13,17 @@ pacman::p_load(
 
 # Load SIMDs --------------------------------------------------------------
 
+# income deprived part
+simd_2016_id <- read_excel(path = "data/simd/00504760.xlsx", sheet = "Data", col_types = rep("text", 36))
+# SIMD 2016
+# 00504760.xlsx
+simd_2016_id[] <- lapply(simd_2016_id, function(x) str_replace(x, "\\*", 0))
+simd_2016_id[,4:36] <- lapply(simd_2016_id[,4:36], as.numeric)
+
+# For SIMD ranks (scores not published!)
+simd_2016 <- read_excel(path = "data/simd/00504759.xlsx", sheet = "SIMD16 ranks")
+
+
 simd_2012 <- read_excel(path = "data/simd/00410767.xls")
 # SIMD 2012
 # 00410767.xls
@@ -84,12 +95,41 @@ simd_2012 %>%
   mutate(year = 2012) %>% 
   select(datazone, year, everything()) -> simd_2012_simple
 
+simd_2016_id %>% 
+  select(
+    datazone = Data_Zone, 
+    pop_total = Total_population, 
+    pop_workingage =Working_age_population, 
+    pop_incomedeprived = `Income_count`
+  ) %>% 
+  mutate(year = 2016) %>% 
+  select(datazone, year, everything()) -> simd_2016_simple_id
+
+simd_2016 %>% 
+  select(
+    datazone = Data_Zone,
+    simd_rank = Overall_SIMD16_rank
+  ) %>% 
+  mutate(
+    simd_score = NA
+  ) %>% 
+  inner_join(simd_2016_simple_id) %>% 
+  select(
+    datazone, year, 
+    pop_total, pop_workingage, 
+    pop_incomedeprived, simd_score, simd_rank
+  ) -> simd_2016_simple
+rm(simd_2016_simple_id)
+
+
+
 # combine these 
 simd_combined <- bind_rows(
   simd_2004_simple, 
   simd_2006_simple, 
   simd_2009_simple, 
-  simd_2012_simple
+  simd_2012_simple,
+  simd_2016_simple
 ) %>% 
   filter(!is.na(datazone))
 
