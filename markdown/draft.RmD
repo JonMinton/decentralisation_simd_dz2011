@@ -3,7 +3,7 @@ title: 'The Suburbanisation of Poverty in Scotland’s Cities: Urban Regeneratio
   Social Cleansing?'
 author: "Jon Minton & Nick Bailey"
 date: "31 August 2016"
-output: word_document
+output: html_document
 ---
 
 ```{r setup01, include=TRUE, echo = FALSE, message = FALSE, warning = FALSE}
@@ -58,12 +58,12 @@ AQMeN and ESRC funding.
 
 # Summary 
 
-* [CHECK] In all four of Scotland’s major cities, the number of poor or ‘income deprived’ people in inner city areas fell between 2012 and 2016 according to the latest Scottish Index of Multiple Deprivation data, while the number of non-poor people in these areas rose. 
-*	[CHECK] In less central areas, the population of both groups was little changed. Poverty therefore became more ‘suburbanised’ in this period.
-*	[CHECK] This continues the trend observed over the last four waves of the SIMD, from 2004 to 2012, again across all four cities. 
-*	[CHECK] The total population in the central areas rose in all four cities between 2004 and 2016. This is generally to be welcomed from an environmental point of view. It suggests that planning policies have succeeded in encouraging people to live in higher density locations which tend to be better served by public transport. 
-*	[CHECK] However the displacement of lower income groups suggests these policies will fail to deliver the socially mixed communities which planners have so frequently advocated as part of their vision for sustainable cities. 
-*	[CHECK] The main reason for this change is likely to be the continued reductions in housing subsidies for lower income households. The last 20 years have seen the loss of social rented housing and greater reliance on private renting, combined with the reductions in housing benefits. As a result, inner city locations appear to be increasingly beyond the reach of poorer households. 
+* In all four of Scotland’s major cities, poverty has become more suburbanized over the last 12 years. The proportion of poor or ‘income deprived’ people in inner city areas fell, while the number of non-poor people in these areas rose.
+*	The latest data, published as part of the Scottish Index of Multiple Deprivation today, confirm this trend, albeit with some variation between cities. The process is advancing most in Edinburgh with Glasgow second. It is slowest in Dundee.
+*	The central areas of all four cities retained their share of the total city population or saw this rise between 2004 and 2016. This is a significant change from decades of population losses and is generally to be welcomed from an environmental point of view. It suggests that planning policies have succeeded in encouraging people to live in higher-density locations which tend to be better served by public transport, reducing reliance on cars. 
+*	However the displacement of lower income groups suggests these policies will fail to deliver the socially mixed communities which planners have so frequently advocated as part of their vision for sustainable cities. 
+*	The main reason for this change is likely to be the continued reductions in housing subsidies for lower income households. The last 20 years have seen the loss of social rented housing and greater reliance on private renting, combined with the reductions in housing benefits. As a result, inner city locations appear to be increasingly beyond the reach of poorer households. 
+
 
 ```{r id_props, eval = TRUE, echo = FALSE, cache = FALSE, message = FALSE, warning = FALSE}
 
@@ -114,20 +114,20 @@ tmp %>% filter(type == "Not Income Deprived") %>%
 
 # Introduction: the suburbanization of poverty
 
-Poverty has long been seen as an urban issue and in particular an ‘inner city’ problem. Historically, that is where older housing in worse condition tended to be found, and hence where poorer households could afford to live. Inner city areas were also worst hit by the processes of deindustrialization since they tended to have the oldest, least productive firms. There was little room for new industrial development so businesses moved out. More affluent households who could afford cars also moved to the suburbs and surrounding areas so the inner cities declined further. At the extreme, this could lead to the development of what some US commentators call ‘doughnut cities’, where a ring of relatively affluent suburbs surround an increasingly abandoned, hollowed-out core. 
+Poverty has long been seen as an urban issue and in particular an ‘inner city’ problem. Historically, that is where older housing in worse condition tended to be found, and hence where poorer households could afford to live. Inner city areas were also worst hit by the processes of deindustrialization since they tended to have the oldest, least productive firms. There was little room for new industrial development so businesses moved out. More affluent households who could afford cars also moved to the suburbs and surrounding areas so the inner cities declined further. At the extreme, this could lead to the development of what some US commentators call ‘doughnut cities’, where a ring of relatively affluent suburbs surround an increasingly abandoned, hollowed-out core.
 
-In many European countries, the contrast between inner and outer urban areas was rarely as great, thanks in part to the efforts of planners to limit the outward sprawl of the cities but also to the scale of social policies pursued by European states. Spending on welfare benefits and on public services ensured that inner urban areas retained relatively strong and well-functioning communities. 
+In many European countries, the contrast between inner and outer urban areas was rarely as great, thanks in part to the efforts of planners to limit the outward sprawl of the cities but also to the scale of social policies pursued by European states. Spending on welfare benefits and on public services ensured that inner urban areas retained relatively strong and well-functioning communities.
 
-In recent decades, inner city locations in many developed countries have witnessed a revival their fortunes and hence in demand for housing from more affluent groups. This is partly about economic changes. With manufacturing replaced by services as the basis of the city economy, inner urban locations have not only seen an improvement in their environment, but also now offer better access to higher-skilled employment as well as expanding leisure opportunities. Inner city living has become the basis of a desirable lifestyle. 
+In recent decades, inner city locations in many developed countries have witnessed a revival their fortunes and hence in demand for housing from more affluent groups. This is partly about economic changes. With manufacturing replaced by services as the basis of the city economy, inner urban locations have not only seen an improvement in their environment, but also now offer better access to higher-skilled employment as well as expanding leisure opportunities. Inner city living has become the basis of a desirable lifestyle.
 
-Governments have often played a strong supporting role in these processes, investing public resources through urban regeneration schemes and seeking to leverage additional private sector investment. They have sought to limit suburbanization and direct new housing development towards brownfield land. In many cases, these policies were driven by a vision of the “sustainable city”, based around higher densities, effective public transport and  
- hoped these changes would bring new opportunities for more deprived communities as well as improvements in the physical environment. They sought to grow the inner city population by developing vacant or underused land, producing mixed communities. 
- 
-However, critics argue that these programmes have resulted not in urban regeneration where benefits are shared but in ‘gentrification’ and the displacement of poorer communities. The rising value of housing and the associated changes in local facilities may push out the lower income households who have long lived in these areas. Working class communities which had been a source of support and solidarity for their members are eroded. In short, the critics accuse governments of pursuing a form of “social cleansing” where the endpoint is an inner city where only the rich can afford to live while the poor are dispersed to suburban and ex-urban locations, with worse access to employment. 
+Governments have often played a strong supporting role in these processes, investing public resources through urban regeneration schemes and seeking to leverage additional private sector investment. They have sought to limit suburbanization and direct new housing development towards brownfield land. In many cases, these policies were driven by a vision of the “sustainable city”, based around higher densities, effective public transport and socially mixed communities. Governments hoped these changes would bring new opportunities for more deprived inner city areas as well as improvements in the physical environment. They sought to grow the inner city population by developing vacant or underused land.
+
+However, critics argue that these programmes have resulted not in urban regeneration where benefits are shared but in ‘gentrification’ and the displacement of poorer communities. The rising value of housing and the associated changes in local facilities may push out the lower income households who have long lived in these areas. Working class communities which had been a source of support and solidarity for their members are eroded. In short, the critics accuse governments of pursuing a form of “social cleansing” where the endpoint is an inner city where only the rich can afford to live while the poor are dispersed to suburban and ex-urban locations, with worse access to employment.
+
 
 ## Suburbanisation of poverty in Scotland
 
-These processes have been little studied in Scotland. In 2014, however, Kavanagh, Lee & Pryce produced an AQMeN briefing paper Poverty in Suburbia: Has Glasgow gone the way of American cities? The paper had a strong methodological focus. To capture decentralisation, they used a measure called the Relative Centralisation Index (RCI) and they developed a new way of assessing uncertainty in this, using a Bayesian spatial statistics approach. This paper argued that there has been a decentralisation or suburbanization of poverty in Glasgow between 2001 and 2011, and that the changes were statistically significant, i.e. the differences were more than we would expect from the random fluctuations which will always occur in a measure from year to year. 
+These processes have been little studied in Scotland. In 2014, however, Kavanagh, Lee & Pryce produced an AQMeN briefing paper Poverty in Suburbia: Has Glasgow gone the way of American cities? The paper had a strong methodological focus. To capture decentralisation, they used a measure called the Relative Centralisation Index (RCI) and they developed a new way of assessing uncertainty in this, using a Bayesian spatial statistics approach. This paper argued that there has been a decentralisation or suburbanization of poverty in Glasgow between 2001 and 2011, and that the changes were statistically significant, i.e. the differences were more than we would expect from the random fluctuations which will always occur in a measure from year to year.
 
 The briefing paper measured 'poverty' in three ways, each relating to specific UK state benefit receipts for persons of working age who were not in employment:
 
@@ -135,7 +135,7 @@ The briefing paper measured 'poverty' in three ways, each relating to specific U
 2.	The proportion of the local population receiving Incapacity Benefit (IB)
 3.	The proportion of the local population receiving Jobseekers' Allowance (JSA)
 
-These analyses were expanded to the four major Scottish cities - Aberdeen, Dundee, Edinburgh and Glasgow - for a paper to appear in Annals of the American Association of Geographers, by the same authors. This paper calculated 95% credible intervals (CrIs) for the difference in RCI from 2001 to 2011 for the same three measures of poverty, and for each of the four cities. It found falls in RCI for all benefit types across all four cities, all of which were statistically significant. 
+These analyses were expanded to the four major Scottish cities - Aberdeen, Dundee, Edinburgh and Glasgow - for a paper to appear shortly in *Annals of the American Association of Geographers*, by the same authors. This paper calculated 95% credible intervals (CrIs) for the difference in RCI from 2001 to 2011 for the same three measures of poverty, and for each of the four cities. It found falls in RCI for all benefit types across all four cities, all of which were statistically significant.
 
 These papers were important for developing a new approach to the measurement of decentralization which captured the uncertainty inherent in the RCI measure. They were also valuable for drawing attention to a phenomenon which has been identified in other countries, notably the US, but which had not previously been discussed in the Scottish context. However, they can be criticized for using relatively weak proxies for poverty; in particular, they ignore those who are in work but in poverty, now the majority of working-age poor. They only cover two time points. And they do not shed any light on whether suburbanization is the result of urban regeneration and the growth of the non-poor population or whether it is the result of displacement. 
 
@@ -154,9 +154,14 @@ The purposes of this briefing paper are:
 
 ## Data
 
-The SIMD is used by the Scottish Government to identify places suffering from multiple deprivation: i.e. a concentration of low income households and associated problems of poor environment, poor housing, crime and social disadvantage. Different editions of the SIMD have been produced in 2004, 2006, 2009 and 2012, with the latest release on 31 August 2016. Data are made available for the small area units known as Datazones, equivalent to the Lower Super Output Area (LSOA) in England & Wales. For the period 2004 to 2012, the Datazone boundaries were those constructed in 2001. For 2016, the SIMD moved over to using the new (2011) Datazone boundaries. 
+The SIMD is used by the Scottish Government to identify places suffering from multiple deprivation: i.e. a concentration of low income households and associated problems of poor environment, poor housing, crime and social disadvantage. Different editions of the SIMD have been produced in 2004, 2006, 2009 and 2012, with the latest release on 31 August 2016. 
+
+Data are made available for the small area units known as Datazones, equivalent to the Lower Super Output Area (LSOA) in England & Wales. For the period 2004 to 2012, the Datazone boundaries were those constructed in 2001. For 2016, the SIMD moved over to using the new (2011) Datazone boundaries. 
+
 The methodology for constructing the SIMD has been consistent over this period although details differ slightly from one edition to the next. As well as producing an overall deprivation score and ranking for each Datazone, all five releases estimate the number of individuals within each Datazone who are 'Income Deprived', i.e. living in a household in receipt of one of a number of low-income benefits or tax credits (and in some cases, subject to a further low income test). Precise definitions change due to changes in the benefit system, but the concept and aim of the measure has remained quite consistent. One year (2006) is perhaps slightly different due to the omission of households in receipt of tax credits on that occasion so results for that year should perhaps be treated with more caution. 
+
 In a recent assessment, Bailey et al (2016) have shown that there is no evidence of any urban-rural bias in this measure. 
+
 SIMD data releases for 2004, 2006, 2009, 2012 and 2016 were downloaded from the SIMD website. For each Datazone, the total population count and the Income Deprived count were extracted from each release and combined in a single dataset, and the number not Income Deprived was calculated. The 'Income Deprived' and ‘not Income Deprived' population counts are the focus of this report.
 
 
@@ -392,7 +397,7 @@ id_chor_dz2011_aberdeen
 
 ## Plotting temporal dependence
 
-The following plot shows scatterplots of the ID proportions in each Scottish datazone in 2004, 2009 and 2012. Within these plots the blue line indicates parity between values on the x and y axis, and the red dashed line shows a nonlinear smoother function between the two ID proportions being plotted, and hence the level of deviation between the actual relationship over the two years and parity. 
+The following plot shows scatterplots of the ID proportions in each Scottish datazone in 2004 through to 2016. Within these plots the blue line indicates parity between values on the x and y axis, and the red dashed line shows a nonlinear smoother function between the two ID proportions being plotted, and hence the level of deviation between the actual relationship over the two years and parity.
 
 ```{r show_temporal_dep, echo = FALSE, warning = FALSE, EVAL = TRUE}
 simd_2011_reweighted %>% 
@@ -479,15 +484,16 @@ plot_grid(s_04_16, s_04_06, s_06_09, s_09_12, s_12_16, nrow = 2)
 
 ```
 
-There were indications in the maps above that the greatest changes occurred between the 2009 and 2012 SIMD releases, suggesting that the temporal association between 2004 and 2009 ID proportions would likely be strong compared with the temporal association between 2009 and 2012. 
+There were indications in the maps above that the greatest changes occurred between the 2009 and 2012 SIMD releases, suggesting that the temporal association between 2004 and 2009 ID proportions would likely be strong compared with the temporal association between 2009 and 2012.
 
-The first of the plots, 2004 compared with 2012, shows strong spatial dependence in areas with low to moderate ID proportions, but much less temporal dependence in areas with high ID proportions in 2004. The second subfigure plots 2004 against 2006 values, and shows a near linear temporal dependence for the complete range of 2004 values, with a global trend towards lower ID proportions throughout Scotland.  The temporal relationship between 2006 and 2009 starts to become nonlinear at the upper range of 2006 values, and this nonlinearity at the upper range becomes much stronger between 2009 and 2012. 
+The first of the plots, 2004 compared with 2016, shows strong spatial dependence in areas with low to moderate ID proportions, but less temporal dependence in areas with high ID proportions in 2004. The second subfigure plots 2004 against 2006 values, and shows a near linear temporal dependence for the complete range of 2004 values, with a global trend towards lower ID proportions throughout Scotland. The temporal relationship between 2006 and 2009 starts to become nonlinear at the upper range of 2006 values, and this nonlinearity at the upper range becomes much stronger between 2009 and 2012, and 2012 and 2016.
 
-These plots indicate a complex change in the temporal dependence of ID proportions, likely occurring over the period 2008 to 2012. SIMD 2016 values will be invaluable in indicating whether these changes have continued, altered or settled between 2012 and 2016.
+There is no suggestion that the change between 2012 and 2016 is significantly different to that for the earlier periods, giving reassurance that the process of moving the earlier data to the new boundaries is not distorting the picture. 
+
 
 ## Income Deprivation by city 
 
-Below is a table showing the percentage if the population in each city (within 15 km of the centre) defined as 'income deprived' according to SIMD. In 2004 these percentages ranged from 9.8% in Aberdeen to 20.8% in Glasgow. By 2012 they had fallen to 7.9% in Aberdeen to 17.1% om Glasgow. In every city except Aberdeen the percentage increased from 2006 to 2009, as would be expected given the onset of the 2008 recession within this period, but then fell again from the 2009 to the 2012 SIMD release. 
+Below is a table showing the percentage if the population in each city (within 20 km of the centre) defined as 'income deprived' according to SIMD. In 2004 these percentages ranged from 9.8% in Aberdeen to 20.8% in Glasgow. By 2012 they had fallen to 7.9% in Aberdeen to 17.1% in Glasgow. In every city except Aberdeen the percentage increased from 2006 to 2009, as would be expected given the onset of the 2008 recession within this period, but then fell again from the 2009 to the 2012 and 2016 SIMD releases.
 
 ```{r id_prop_by_year, eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
   simd_2011_reweighted  %>% 
@@ -713,13 +719,11 @@ all_posteriors  %>%
 
 ```
 
-[CHECK] The overall trend for all four cities is for poverty to decentralize between 2004 to 2016. Dundee shows the most centralisation of poverty, then Aberdeen, and Glasgow, with Edinburgh the most decentralised. Indeed, from 2009 onwards, Edinburgh is unique in having poorer households living further from the city centre than non-poor. 
+The overall trend for all four cities is for poverty to decentralize between 2004 to 2016. Dundee shows the most centralisation of poverty, then Aberdeen, and Glasgow, with Edinburgh the most decentralised. Indeed, from 2009 onwards, Edinburgh is unique in having poorer households living further from the city centre than non-poor on average, and this increased in the most recent period.
 
-[CHECK] For Glasgow and Dundee, the decline in RCI is continuous, whereas for Aberdeen and Edinbugh RCI values increased from 2004 to 2006, before declining in 2009 and 2012. As note above, there is some reason to be more cautious about the comparability of the 2006 data with that from other years. 
-
+For Glasgow and Dundee, the decline in RCI is continuous although, in the most recent period, the change is within the limits of random fluctuation. For Aberdeen and Edinburgh, RCI values increased slightly from 2004 to 2006, before declining after 2009. As noted above, there is some reason to be more cautious about the comparability of the 2006 data with that from other years.
 
 The equivalent graph for the Dissimilarity index is shown below:
-
 
 ```{r plot_change_d, eval = TRUE, echo = FALSE, warning = FALSE}
 # Do D graph
@@ -748,13 +752,14 @@ all_posteriors %>%
 
 ```
 
-As with RCI, Dissimilarity scores have also fallen over time for all four cities. The greatest contrast in the trends is between Aberdeen and Edinburgh. In 2004 both cities had similar and overlapping D scores, but between 2004 and 2009 segregation fell rapidly for Edinburgh, while remaining fairly stable in Aberdeen, before falling from 2009 to 2012. Glasgow has always had the lowest D scores of the four cities, and Dundee the highest, but since 2009 the distribution of D estimates for Edinburgh have started to overlap those of Glasgow as the rate of decline in D has been slightly greater in Edinburgh than Glasgow. Similarly, the the greatest fall in D occurred between 2006 and 2009.
+As with RCI, Dissimilarity scores have also fallen over time for all four cities although Edinburgh shows signs of an increase in the most recent period. The greatest contrast in the trends is between Aberdeen and Edinburgh. In 2004 both cities had similar and overlapping D scores, but between 2004 and 2009 segregation fell rapidly for Edinburgh, while remaining fairly stable in Aberdeen, before falling from 2009 to 2016. Glasgow has always had the lowest D scores of the four cities, and Dundee the highest, but since 2009 the distribution of D estimates for Edinburgh have started to overlap those of Glasgow as the rate of decline in D has been slightly greater in Edinburgh than Glasgow. Similarly, the the greatest fall in D occurred between 2006 and 2009.
 
-In general, this suggests segregation is falling or social mix increasing. However, given the findings about about the decentralization of poverty, the concern is that this reduction is merely a temporary phenomenon during a period of structural change: as non-poor groups move back to colonise inner city locations, mixing increases but is then likely to fall again as the poor continue to be displaced. 
+In general, this suggests segregation is falling or social mix increasing. However, given the findings about about the decentralization of poverty, the concern is that this reduction is merely a temporary phenomenon during a period of structural change: as non-poor groups move back to colonise inner city locations, mixing increases but is then likely to fall again as the poor continue to be displaced.
+
 
 ## Plots of the distance/deprivation relationship 
 
-[CHECK] In the figure below, the vertical axis shows the change in the proportion income deprived from 2004 to 2016, and the horizontal axis shows the distance of datazones from the city centres, plotted on a log scale, for each of the four main Scottish cities. Individual datazones are indicated with faint circles, and a nonlinear smoother has been added showing how this the change in income deprivation varies as a function of distance. A dashed horizontal line has been added indicating no change in deprivation between the two period, and vertical lines added at 1km and 12km, as below 1km there are few observations, and above 12km the effect of a functional urban geography appears small.
+In the figure below, the vertical axis shows the change in the proportion of people income deprived from 2004 to 2016, and the horizontal axis shows the distance of datazones from the city centres, plotted on a log scale, for each of the four main Scottish cities. Individual datazones are indicated with faint circles, and a nonlinear smoother has been added showing how this the change in income deprivation varies as a function of distance. A dashed horizontal line has been added indicating no change in deprivation between the two period, and vertical lines added at 1km and 12km, as below 1km there are few observations, and above 12km the effect of a functional urban geography appears small.
 
 ```{r show_change_in_id, eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
 decent_plot_for_city <- function(this_city){
@@ -793,11 +798,13 @@ plot_grid(
 
 ```
 
-These plots suggest a qualitatively similar relationship between change in deprivation and distance, up to around 12km from city centre, for Aberdeen, Edinburgh and Glasgow, with Glasgow showing the strongest gradient of change between these two periods. Dundee shows a similar kind of relationship, but concentrated within the first 5km, rather than 12km, of distance from city centre. This is consistent with the maps of income deprivation in Dundee, showing much greater levels of spatial concentration than for the other cities.
+In broad terms, these plots suggest a similar picture, with reductions in deprivataion rates greater in areas closest to the centre. 
 
 ### Numerator and denominator changes 
 
-The falls in income deprivation nearer city centres are a function both of changing numerators - i.e. changes to the number of people income deprived - and changing denominators - i.e. changes to total population sizes. To gain a better understanding of the relative influence of these two changes to the relationship shown in the previous figure, the next two figures show the proportionate change from 2004 to 2012 in income deprived populations, and total populations.
+The falls in income deprivation nearer city centres are a function both of changing numerators - i.e. changes to the number of people income deprived - and changing denominators - i.e. changes to total population sizes. To gain a better understanding of the relative influence of these two changes to the relationship shown in the previous figure, the next groups of figures show the proportionate change from 2004 to 2016 in income deprived populations, and total populations. These plots indicate greater proportionate falls in the ID population shares at distances closes to the city centre.
+
+
 
 The next figure shows how the income deprived population has changed between the two periods.
 
@@ -832,7 +839,7 @@ plot_grid(
   nrow = 2
 )
 ```
-This plot indicates proportionate falls in the ID population shares at distances closes to the city centre, up to around 20% in Aberdeen and Glasgow, and either proportionate rises (Dundee and Edinburgh) or little change in proportions (Aberdeen and Glasgow) at greater distance from the city centre. This seems to suggest, for Aberdeen and Glasgow in particular, that 'gentrification of the centre' could be as much or more of an explanation for falls in RCI as 'impoverishment of the periphery', though that there are somewhat different socioeconomic mechanisms in place for the four cities.
+The plots suggest that more central areas have held or increased their share of the total city population. Changes have been the same or slightly greater in Datazones closer to the centre. In Edinburgh, the centre has grown at the expense of surrounding areas. In Glasgow, it has declined less rapidly. 
 
 The following plot shows the change in the total population size as a function of distance from city centre. (The smoother line at distances less than 1km should likely be ignored for most cities as it involves extrapolation based on very few observations).
 
@@ -876,7 +883,6 @@ This plot suggests that there have been substantial increases in population size
 Alternative methods of reweighting SIMD values released at 2001 datazone levels could be explored, including those which make use of more sophisticated GIS-based methods to apportion values to 2011 datazones, and of approaches which use SIMD component values available at a higher level of spatial disaggregation (e.g. output areas) to recalculate and reapportion SIMD scores to 2011 datazone geographies.
 
 The robustness of the results to the choice of city centre could be explored in a sensitivity analysis.
-
 
 
 # Appendices 
