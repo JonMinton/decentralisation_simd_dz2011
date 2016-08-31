@@ -21,6 +21,58 @@ source('scripts/from_gavin/binomial.MCARleroux.R')
 Rcpp::sourceCpp('scripts/from_gavin/aqmen.cpp')
 
 
+
+
+# Figure for The Conversation
+
+simd_2011_reweighted  %>% 
+  ungroup() %>%  
+  left_join(centre_distance, by = c("dz_2011" = "datazone")) %>% 
+  distinct() %>%
+  rename(City = nearest_centre) %>% 
+  filter(City %in% c("Aberdeen", "Dundee", "Edinburgh", "Glasgow")) %>% 
+  mutate(
+    lower_thresh = ifelse(City %in% c("Aberdeen", "Dundee"), 3200, 5000),
+    centralness = ifelse(distance_to_centre < 20000, "periphery", "exurb"),
+    centralness = ifelse(distance_to_centre < lower_thresh, "centre", centralness)
+  ) %>% dplyr::select(-lower_thresh) %>% 
+  filter(centralness %in% c("centre", "periphery")) %>% 
+  group_by(City, year, centralness) %>%
+  mutate(pop_nonid = pop_total - pop_incomedeprived) %>% 
+  summarise(pop_nonid = sum(pop_nonid), pop_incomedeprived = sum(pop_incomedeprived)) %>% 
+  summarise(
+    `Income Deprived` = pop_incomedeprived[centralness == "centre"] / sum(pop_incomedeprived),
+    `Not Income Deprived` = pop_nonid[centralness == "centre"] / sum(pop_nonid)
+  ) %>% 
+  gather(key = "type", value = "prop", `Income Deprived`:`Not Income Deprived`) -> tmp
+
+
+tmp %>% filter(type == "Income Deprived") %>% 
+  mutate(prop = 100 * prop) %>% 
+  ggplot(., 
+         aes(
+           x = year, y = prop 
+         )
+  ) + 
+  geom_line() + geom_point() +
+  facet_wrap( ~ City, nrow = 2, scales = "free_y") + 
+  labs(x = "Year", y = "Percentage", title = "Percent income deprived near City Centre") 
+
+ggsave("figures/conversation_01.png", height = 15, width = 15, units = "cm", dpi = 300)
+
+
+tmp %>% filter(type == "Not Income Deprived") %>% 
+  mutate(prop = 100 * prop) %>% 
+  ggplot(., 
+         aes(
+           x = year, y = prop 
+         )
+  ) + 
+  geom_line() + geom_point() +
+  facet_wrap( ~ City, nrow = 2, scales = "free_y") + 
+  labs(x = "Year", y = "Percentage", title = "Percent Not income deprived near City Centre")
+
+ggsave("figures/conversation_02.png", height = 15, width = 15, units = "cm", dpi = 300)
 # Check this works - plot distance to nearest centre
 # dz_2011 %>% 
 #   append_data(., centre_distance, key.shp = "DataZone", key.data = "datazone", ignore.duplicates =T) %>% 
