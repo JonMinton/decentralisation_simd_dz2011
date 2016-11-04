@@ -1,0 +1,81 @@
+---
+title: "CART and Cluster analysis"
+output: html_notebook
+---
+
+This is a short attempt to use SIMD data to demonstrate CARTs, Cluster Analyses etc.
+
+
+```{r setup01, include=TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+rm(list = ls())
+# Code chunk example from http://stackoverflow.com/questions/24585254/working-with-knitr-using-subdirectories
+library(knitr)
+
+opts_knit$set(root.dir=normalizePath('../'))
+```
+
+```{r setup02, include = TRUE, cache = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+
+require(pacman)
+
+pacman::p_load(
+  readr, readxl,
+  purrr, stringr, tidyr, dplyr,
+  broom,
+  rgeos,
+  ggplot2, cowplot,
+  tmap, RColorBrewer,
+  
+  rpart, rpart.plot
+)
+
+
+simd_2016 <- read_excel(path = "../data/simd/00504759.xlsx", sheet = "SIMD16 ranks")
+
+
+```
+
+
+# CART
+
+Classification and regression trees try to classify observations into discrete groups based on the characteristics of variables. They are predictive rather than descriptive, unlike cluster analysis, as the discrete groups are known beforehand, and predicted can be compared against actual groups. Through this they can be helpful for getting a sense of the main features that distinguish different groups, and so perhaps the discriminatory power (statistical usefulness) of different variables available to you. 
+In this example they will try to classify datazones into council areas based on various 2016 SIMD ranks, and population sizes. 
+
+```{r cart_example}
+# Using examples from 
+#http://www.statmethods.net/advstats/cart.html
+
+cart_model <- rpart(Council_area ~ Total_population + Working_age_population + Overall_SIMD16_rank + Income_domain_2016_rank + Housing_domain_2016_rank + Access_domain_2016_rank, data = simd_2016, method = "class")
+
+
+
+```
+
+```{r plot_tree}
+# plot tree 
+
+
+prp(cart_model, uniform=F, 
+  	main="Classification Tree for LAs based on SIMD characteristics",
+    clip.right.labs = F, varlen = 0)
+#text(cart_model, use.n=F, all=F)
+
+
+```
+
+
+
+This is suggesting that the housing domain rank is the most useful single indicator for identifying one c local authority area, namely Glasgow city. If the rank in the housing domain is below 1134, then it predicts the datazone is in Glasgow City.
+Then, it suggests that if an areas has an overall SIMD rank above 6536 (there are now 6976 2011 datazones, up from 6505 datazones based on the 2001 census), then predict City of Edinburgh. Then, if the access domain rank is less than 602, predict Aberdeenshire, and so on. 
+
+
+```{r further_stats}
+
+printcp(cart_model) # display the results 
+plotcp(cart_model) # visualize cross-validation results 
+summary(cart_model) # detailed summary of splits
+
+
+```
+
+
