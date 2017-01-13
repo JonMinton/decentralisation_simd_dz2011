@@ -73,84 +73,97 @@ imd_num %>%
   select(lsoa, year, pop_id, pop_total) -> imd_2010
 
 
+# 2007 data 
 
-# TO DO -------------------------------------------------------------------
+imd_denom <- read_excel("data/imd/2007/708341 - Population Counts.xls", "Mid-2005 Population at Risk")
+imd_denom %>% .[,c(1, 8)] -> imd_denom
+names(imd_denom) <- c("lsoa", "pop_total")
 
-# same for 2007 and 2004
+imd_num <- read_excel("data/imd/2007/All data  ID 2007 29 May 2008 - Income.xls", "Income")
+imd_num %>% .[,c(1, 6)] -> imd_num
+names(imd_num) <- c("lsoa", "pop_id")
 
-
-
-
-
-imd_2015 %>% 
-  mutate(pop_id = prop_id * pop_total) %>% 
-  mutate(year = 2015) %>% 
-  select(lsoa, year, pop_id, pop_total) -> imd_2015
-
-# Load IMDs --------------------------------------------------------------
-
-imd_2015 <- read_csv(
-  "data/imd/File_7_ID_2015_All_ranks__deciles_and_scores_for_the_Indices_of_Deprivation__and_population_denominators.csv"
-  )
-
-imd_2015 %>% 
-  select(
-    lsoa = LSOA_code_2011,
-    la_name = Local_Authority_District_name_2013,
-    imd_score = Index_of_Multiple_Deprivation_IMD_Score
-    ) %>% 
-  ggplot(aes(x = imd_score, group = la_name, fill = la_name)) +
-  geom_density(alpha = 0.2) + 
-  guides(fill = F)
-
-# Where is the place with just one IMD score? 
-imd_2015 %>% 
-  select(
-    lsoa = LSOA_code_2011,
-    la_name = Local_Authority_District_name_2013,
-    imd_score = Index_of_Multiple_Deprivation_IMD_Score
-  ) %>% 
-  group_by(la_name) %>% 
-  summarise(n = n()) %>% 
-  arrange(n)
-# The Isles of Scilly
-# Remove Isles of Scilly & City of London
-imd_2015 %>% 
-  select(
-    lsoa = LSOA_code_2011,
-    la_name = Local_Authority_District_name_2013,
-    imd_score = Index_of_Multiple_Deprivation_IMD_Score
-  ) %>% 
-  filter(!la_name %in% c("Isles of Scilly", "City of London")) %>% 
-  ggplot(aes(x = imd_score, group = la_name, fill = la_name)) +
-  geom_density(alpha = 0.2, colour = NA) + 
-  guides(fill = F)
+imd_num %>% 
+  inner_join(imd_denom) %>% 
+  mutate(year = 2007) %>% 
+  select(lsoa, year, pop_id, pop_total) -> imd_2007
 
 
-# Now let's look at what we have for other years
+# 2004 data 
 
-# For 2010,
-# Each sheet after Notes has to be read in, and linked to through LSOA code
-
-sheets_10 <- excel_sheets("data/imd/ID2010 - IMD and domains.xls")
-sheets_10 <- sheets_10[-1] # first one is notes 
-imd_10_list <- lapply(
-  sheets_10,
-  function(x){
-    read_excel(
-      path = "data/imd/ID2010 - IMD and domains.xls",
-      sheet = x         
-    )
-  }
-)
-
-imd_10 <- Reduce(
-    inner_join, 
-    imd_10_list
-)
-
-# Now earlier years
-
-#2007
+# No comparable data 
 
 
+# 2000 data 
+
+# No comparable data 
+
+
+# Combine found data 
+
+imd_allyears <- bind_rows(
+  imd_2007,
+  imd_2010,
+  imd_2015
+) %>% 
+  group_by(year, lsoa) %>% 
+  summarise(pop_id = sum(pop_id), pop_total = sum(pop_total)) %>% 
+  arrange(year, lsoa) %>% 
+  ungroup()
+
+
+# Problem: 2015 indicators on new LSOAs 
+
+# Lookup needed 
+
+write_csv(x = imd_allyears, path =  "data/imd/imd_id_tidied.csv")
+
+# test for errors in 2007, 2010, 2015 -------------------------------------
+
+# Any numerators > denoms? 
+
+imd_allyears %>% 
+  mutate(has_error = pop_id > pop_total) %>% 
+  filter(has_error)
+
+# No errors of this sort 
+
+# Now some descriptive stats 
+
+# Can only compare 2007 and 2010
+# proportion in each area income deprived 
+
+imd_allyears %>% 
+  filter(year %in% c(2007, 2010)) %>% 
+  mutate(prop_id = pop_id / pop_total) %>% 
+  group_by(year) %>% 
+  arrange(prop_id)
+
+
+# Variation between two years 
+
+imd_allyears %>% 
+#  filter(year %in% c(2007, 2010)) %>% 
+  mutate(prop_id = pop_id / pop_total) %>% 
+  select(lsoa, year, prop_id) %>% 
+  mutate(year = paste("y", year, sep = "_")) %>%
+  spread(year, prop_id) %>% 
+  ggplot(., aes(x = y_2010, y = y_2015)) +
+  geom_point(shape = ".", alpha = 0.3) + 
+  coord_fixed(xlim = c(0, 1), ylim = c(0, 1), expand = F) + 
+  geom_abline(slope = 1, intercept = 0)
+
+# Some evidence of fall in ID proportions 
+
+
+
+
+
+
+
+imd_allyears %>% 
+  filter(year == 2007) -> tmp
+unique(tmp$lsoa) %>% length()
+
+
+  
