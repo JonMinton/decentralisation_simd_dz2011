@@ -1,0 +1,21 @@
+"Cities, towns & districts",Population,EastingA,NorthingA,EastingB,NorthingB,EastingC,NorthingC,EastingD,NorthingD,LA,A name,B name,C name,lsoa_A,lsoa_B,lsoa_C,lsoa_D
+London,"7,074,265",,,,,,,,,None yet,,,,,,,
+Birmingham,"1,020,589",406672,286966,407351,286670,406969,286643,406997.3333,286759.6667,Birmingham,Bham council,bullring,bham new street,E01009150,E01009510,E01009510,E01009510
+Leeds,"726,939",429835,434078,430148,433530,429899,433264,429960.6667,433624,Leeds,civic hall,trinity,Leeds,E01011365,E01011365,E01011365,E01011365
+Glasgow,"616,430",259348,665373,259177,665692,258763,665186,259096,665417,Glasgow City,city coucil,Buchanan Galleries,glasgow central,,,,
+Sheffield,"530,375",435366,387189,435298,387323,435830,386950,435498,387154,Sheffield,city coucil,orchard square,Sheffield,E01008070,E01008070,E01007880,E01008070
+Bradford,"483,422",416351,432917,416532,433154,416583,432801,416488.6667,432957.3333,Bradford,City Of Bradford Metropolitan District Council,Broadway Centre,bradford interchange,E01010844,E01010844,E01010844,E01010844
+Liverpool,"467,995",334164,390495,334459,390190,334944,390206,334522.3333,390297,Liverpool,Liverpool Town Hall,liverpool one,liverpool central,E01006650,E01006511,E01006511,E01006650
+Edinburgh,"448,850",325740,673679,324717,673672,325790,673858,325415.6667,673736.3333,"Edinburgh, City of",city chambers,Princes Street,Edinburgh waverly,,,,
+Manchester,"430,818",383866,398084,384079,398645,384763,397847,384236,398192,Manchester,Manchester Town Hall,manchester arndale,Manchester picadilly,E01005127,E01005131,E01005131,E01005134
+Bristol,"399,633",358278,172787,359455,173461,359723,172473,359152,172907,Bristol,City Hall (formerly the Council House),cabot circus,Bristol temple mead,E01014543,E01003354,E01014656,E01014652
+Wakefield,"317,342",433024,420928,433396,421034,432745,420817,433055,420926.3333,Wakefield,Wakefield Metropolitan District Counci,trinity walk,Wakefield westgate,E01011920,E01011916,E01011920,E01011920
+Cardiff,"315,040",318246,176916,318491,176564,318214,175882,318317,176454,Cardiff,city hall,queen street,Cardiff central station,,,,
+Coventry,"306,503",433593,278901,433285,279141,433190,278226,433356,278756,Coventry,Coventry Council House,West Orchards Shopping Centre,Coventry railway station,E01009642,E01009642,E01009548,E01009642
+Belfast,"297,300",146240,529558,146122,529965,147063,529281,146475,529601.3333,None yet,Belfast City Hal,castlecourt,Belfast central station,,,,
+Leicester,"294,830",458986,304408,458483,304632,459308,304079,458925.6667,304373,Leicester,Leicester Town Hall,highcross,Leicester station,E01013644,E01013644,E01013644,E01013644
+Sunderland,"294,261",439721,556472,439434,556815,439702,556929,439619,556738.6667,Sunderland,Sunderland city hall,the bridges shopping centre,Sunderland station,E01008831,E01008703,E01008703,E01008836
+Nottingham,"283,969",457313,339909,457386,339548,457432,339201,457377,339552.6667,Nottingham,Nottingham Council House,intu broadmarsh,Nottingham station,E01013869,E01013869,E01013869,E01013869
+Newcastle-upon-Tyne,"282,338",424981,565009,424715,564567,424613,563837,424769.6667,564471,Newcastle upon Tyne,Newcastle City Council,eldon square,Newcastle station,E01008397,E01008397,E01008440,E01008397
+Kingston-upon-Hull,"266,775",509535,428768,509041,428952,509105,428802,509227,428840.6667,Kingston upon Hull,Hull City Hall,st stephens,Hull paragon interchange,E01012853,E01012851,E01012851,E01012853
+Brighton and hove,,531092,103996,530717,104217,531002,104920,530937,104377.6667,Brighton and Hove,Brighton Town Hall,churchill square,Brighton station,E01016952,E01016952,E01016965,E01016969
