@@ -176,40 +176,19 @@ n.keep <- (n.sample - burnin)/thin
 
 # Now to revise do_model to run all available years 
 
-do_model <- function(place, initial_dist = 18000){
-  
-  this_dist <- initial_dist
-  has_islands <- T
-  
-  while(has_islands){
-    lsoa_2001  %>% 
-      append_data(
-        shp = . , data = centre_distance, 
-        key.shp = "LSOA01CD", key.data = "lsoa"
-      ) %>% 
-      .[.$nearest_centre == place,] %>% 
-      .[.$distance_to_centre <= this_dist,] -> lsoa_city
-    # plot(lsoa_city, main = this_dist)
-    # browser()
-    
-    w <-  poly2nb(lsoa_city)   
-    if (any(card(w) == 0)){
-      this_dist <- this_dist + 1000
-    } else {
-      has_islands <- F
-    }
-  }
-  
-  simd_2011_reweighted %>% 
-    dplyr::select(lsoa, year, pop_total, pop_id) -> tmp
+do_model <- function(place){
+
+  lsoa_id_by_ttwa %>% 
+    filter(ttwa_nm == place) %>% 
+    select(year, lsoa, pop_id, pop_total) -> tmp
   
   tmp %>% 
-    dplyr::select(-pop_id) %>% 
+    select(-pop_id) %>% 
     mutate(year = paste0("pop_total_", year)) %>% 
     spread(year, pop_total) -> pops
   
   tmp %>% 
-    dplyr::select(-pop_total) %>% 
+    select(-pop_total) %>% 
     mutate(year = paste0("pop_id_", year)) %>% 
     spread(year, pop_id) -> incdeps
   
@@ -217,13 +196,16 @@ do_model <- function(place, initial_dist = 18000){
   rm(tmp, pops, incdeps)
   
   
-  lsoa_city %>% 
+  lsoa_2001 %>% 
     append_data(
       shp = ., data = popinc,
       key.shp = "LSOA01CD", key.data = "lsoa",
       ignore.na = T
-    ) %>% 
-    .[!is.na(.$pop_total_2004),] -> lsoa_city
+    ) -> lsoa_city
+  
+  
+  qtm(lsoa_city)
+  browser()
   
   
   W_nb <- poly2nb(lsoa_city)
@@ -231,11 +213,9 @@ do_model <- function(place, initial_dist = 18000){
   W_list <- nb2listw(W_nb, style = "B")
   W <- nb2mat(W_nb, style = "B")
   n <- nrow(W)
+  browser()
   
-  # Need to remove unconnected LSOA01CDs ('islands')
-  
-  
-  
+
   #### Format the data
   Y.mat <- cbind(
     as.integer(lsoa_city@data$pop_id_2004),
@@ -348,12 +328,9 @@ do_model <- function(place, initial_dist = 18000){
 
 
 
-indicators_birmingham <- do_model("Birmingham")
+indicators_birmingham <- do_model("Birmingham") # Empty neighbour sets found
+indicators_leeds <- do_model("Leeds") 
 
-
-indicators_dundee <- do_model("Dundee")
-indicators_edinburgh <- do_model("Edinburgh")
-indicators_glasgow <- do_model("Glasgow")
 
 # Tidy all indicator draws 
 
