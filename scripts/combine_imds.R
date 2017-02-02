@@ -144,7 +144,7 @@ imd_num %>%
 
 
 # Data Stitching code from Gavin ------------------------------------------
-
+# 2011 to 2001
 
 # changes of LSOAs boundaries
 changes.boundary <- read_csv("data/england_lookup/LSOA01_LSOA11_LAD11_EW_LU.csv")  %>%
@@ -221,52 +221,138 @@ imd_allyears <- bind_rows(
 
 write_csv(x = imd_allyears, path =  "data/imd/imd_id_tidied.csv")
 
-# test for errors in 2007, 2010, 2015 -------------------------------------
-# 
-# # Any numerators > denoms? 
-# 
-# imd_allyears %>% 
-#   mutate(has_error = pop_id > pop_total) %>% 
-#   filter(has_error)
-# 
-# # No errors of this sort 
-# 
-# # Now some descriptive stats 
-# 
-# # Can only compare 2007 and 2010
-# # proportion in each area income deprived 
-# 
-# imd_allyears %>% 
-#   filter(year %in% c(2007, 2010)) %>% 
-#   mutate(prop_id = pop_id / pop_total) %>% 
-#   group_by(year) %>% 
-#   arrange(prop_id)
-# 
-# 
-# # Variation between two years 
-# 
-# imd_allyears %>% 
-# #  filter(year %in% c(2007, 2010)) %>% 
-#   mutate(prop_id = pop_id / pop_total) %>% 
-#   select(lsoa, year, prop_id) %>% 
-#   mutate(year = paste("y", year, sep = "_")) %>%
-#   spread(year, prop_id) %>% 
-#   ggplot(., aes(x = y_2010, y = y_2015)) +
-#   geom_point(shape = ".", alpha = 0.3) + 
-#   coord_fixed(xlim = c(0, 1), ylim = c(0, 1), expand = F) + 
-#   geom_abline(slope = 1, intercept = 0)
-# 
-# # Some evidence of fall in ID proportions 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# imd_allyears %>% 
-#   filter(year == 2007) -> tmp
-# unique(tmp$lsoa) %>% length()
-# 
-# 
-#   
+
+
+# Reverse data stitching 
+# 2001 to 2011 
+
+# Data Stitching code from Gavin ------------------------------------------
+# 2011 to 2001
+
+# changes of LSOAs boundaries
+changes.boundary <- read_csv("data/england_lookup/LSOA01_LSOA11_LAD11_EW_LU.csv")  %>%
+  select(LSOA01CD,LSOA11CD,CHGIND)
+
+
+changes.boundary %>% 
+  group_by(LSOA01CD, LSOA11CD, CHGIND) %>% 
+  tally() %>% 
+  group_by(CHGIND) %>% 
+  summarise(min_n = min(n), max_n = max(n))
+
+pop_t1 <- imd_allyears %>%   
+  filter(year == 2004) %>% 
+  select(LSOA01CD = lsoa, pop_t1 = pop_total) 
+
+
+pop_t2 <- imd_2015 %>% 
+  filter(year == 2015) %>% 
+  select(LSOA11CD = lsoa, pop_t2 = pop_total)
+
+changes.boundary <- changes.boundary %>% 
+  inner_join(pop_t1) %>% 
+  inner_join(pop_t2) 
+
+
+# Code == M 
+# Merge: 2 + t1 -> 1 t2
+
+change_m <- changes.boundary %>% filter(CHGIND == "M")
+
+
+# Code == S 
+# Split: 1 t2 -> 2+ t2
+
+change_s <- changes.boundary %>% filter(CHGIND == "S")
+
+# Code == U
+# Unchanged: 1 t1 => 1 t2
+
+change_u <- changes.boundary %>% filter(CHGIND == "U")
+
+# Code == X 
+# DROP!
+
+
+# Case where change == M
+
+# Find t1_t2_reweight 
+
+change_m <- change_m %>% 
+  group_by(LSOA11CD) %>% 
+  mutate(t1_t2_reweight = pop_t1 / sum(pop_t1)) %>% 
+  ungroup()
+
+# Case where change == S
+# find t2_t1_reweight
+change_s <- change_s %>% 
+  group_by(LSOA01CD) %>% 
+  mutate(t2_t1_reweight = pop_t2 / sum(pop_t2))
+
+
+# Reweighting in case where change == M 
+imd_allyears %>% 
+  right_join(change_m, by = c("lsoa" = "LSOA01CD")) %>% 
+  filter(year != 2015) %>% 
+  mutate(pop_id_rwt = pop_id * t1_t2_reweight) %>% 
+  mutate(pop_total_rwt = pop_total * t1_t2_reweight) %>% 
+  select(year, lsoa = LSOA11CD, pop_id_rwt, pop_total_rwt) %>% 
+  group_by(year, lsoa) %>% 
+  summarise(pop_id = sum(pop_id_rwt), pop_total = sum(pop_total_rwt)) %>% 
+  ungroup() -> imd_earlier_on_lsoa2011_m
+
+# Splitting in case where change == S 
+
+imd_allyears %>% 
+  right_join(change_s, by = c("lsoa" = "LSOA01CD")) %>% 
+  filter(year != 2015) %>% 
+  mutate(pop_id_rwt = pop_id * t2_t1_reweight) %>% 
+  mutate(pop_total_rwt = pop_total * t2_t1_reweight) %>% 
+  select(
+    year, lsoa = LSOA11CD, pop_id = pop_id_rwt, pop_total = pop_total_rwt
+  ) -> imd_earlier_on_lsoa2011_s
+
+# sense check 
+imd_earlier_on_lsoa2011_s %>% 
+  group_by(year, lsoa) %>% 
+  tally() %>% 
+  xtabs(~n, .)
+# One row per year, lsoa combination - good 
+
+
+# Now the (hopefully) trivially easy one : 
+# Case where change  == U
+
+imd_allyears %>% 
+  right_join(change_u, by = c("lsoa" = "LSOA01CD")) %>% 
+  filter(year != 2015) %>% 
+  select(
+    year, lsoa = LSOA11CD, pop_id = pop_id, pop_total = pop_total
+  ) -> imd_earlier_on_lsoa2011_u
+
+
+# Now combine U, S and M (implicitly drop X)
+
+imd_earlier_on_lsoa2011 <- bind_rows(
+  imd_earlier_on_lsoa2011_m,
+  imd_earlier_on_lsoa2011_s,
+  imd_earlier_on_lsoa2011_u
+)
+
+# Now add values from 2015 
+
+imd_2015 %>% 
+  select(year, lsoa, pop_id, pop_total) %>% 
+  bind_rows(imd_earlier_on_lsoa2011) %>% 
+  arrange(
+    year, lsoa
+  ) -> imd_all_on_lsoa2011
+
+
+write_csv(imd_all_on_lsoa2011, "data/imd/imd_id_lsoa2011_tidied.csv")
+
+
+
+
+
+
