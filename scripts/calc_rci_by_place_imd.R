@@ -13,11 +13,54 @@ pacman::p_load(
   tmap
 )
 
-
+source("scripts/from_gavin/RCI.R")
 # imd
 dist_to_centre <- read_csv("data/lsoa_2011_by_dist_to_centres.csv")
 dta <- read_csv("data/imd/imd_id_tidied.csv", col_types = "icdd")
 
+
+dist.order <- order(dz_city@data$distance_to_centre)
+
+
+D <- function(minority, total){
+  majority      <- total - minority
+  MINORITY      <- sum(minority)
+  MAJORITY      <- sum(majority)
+  
+  p1 <- minority / MINORITY
+  p2 <- majority / MAJORITY 
+  
+  ad <- abs(p1 - p2)
+  
+  out <- 0.5 * sum(ad)
+  out
+}
+
+# Inputs to RCI are 
+#povvec
+#popvec
+#order
+
+dta %>% 
+  inner_join(dist_to_centre) %>% 
+  group_by(place, year) %>% 
+  nest() %>% 
+  mutate(
+    pvec = map(data, ~ .[["pop_id"]]),
+    tvec = map(data, ~ .[["pop_total"]]),
+    ordr = map(data, ~ order(.[["distance"]]))
+         ) %>% 
+  mutate(rci_val = pmap_dbl(list(pvec, tvec, ordr), RCI)) %>% 
+  mutate(d_val = pmap_dbl(list(pvec, tvec), D)) %>% 
+  select(place, year, rci = rci_val, d = d_val) -> rci_by_year_place
+
+rci_by_year_place %>% 
+  ggplot(., aes(x = factor(year), y = rci)) + 
+  geom_line() + geom_point() + 
+  facet_wrap(~place)
+
+  mutate(ordr = order(distance)) %>% 
+  arrange(ordr)
 
 dta %>% 
   inner_join(dist_to_centre) %>% 

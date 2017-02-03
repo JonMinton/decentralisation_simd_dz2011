@@ -79,6 +79,14 @@ lsoa_2011 <- read_shape(file = "shapefiles/Lower_layer_super_output_areas_(E+W)_
 #plot(lsoa_2011)
 
 
+# Something else to extract: 
+
+# area of each lsoa 
+
+lsoa_area <- data_frame(
+  lsoa = as.character(lsoa_2011@data$LSOA11CD),
+  area = gArea(lsoa_2011, byid = T)
+)
 # Create a new function
 # This function should 
 # Inputs: 
@@ -125,54 +133,8 @@ lsoa_by_dist_to_centres %>%
   group_by(lsoa) %>% 
   filter(distance == min(distance)) %>% 
   ungroup() %>% 
-  arrange(lsoa) -> lsoa_by_dist_to_centres
+  arrange(lsoa) %>% 
+  inner_join(lsoa_area) -> lsoa_by_dist_to_centres
 
 write_csv(lsoa_by_dist_to_centres, "data/lsoa_2011_by_dist_to_centres.csv")
-
-rm(lsoa_2011)
-gc()
-
-dta %>% 
-  inner_join(lsoa_by_dist_to_centres) %>% 
-  mutate(prop_id = pop_id / pop_total) %>% 
-  filter(place == "Manchester") %>% 
-  ggplot(., aes(x = distance, y = prop_id))  
-#  facet_grid(year ~ place)
-
-
-
-
-
-# xxxxxxxxxxxxxx ----------------------------------------------------------
-
-
-
-
-
-# Basic descriptive stuff: 
-
-# Mean prop_id by ttwa by year
-lsoa_id_by_ttwa %>% 
-  group_by(year, ttwa_nm) %>% 
-  summarise(pop_id = sum(pop_id), pop_total = sum(pop_total)) %>% 
-  mutate(prop_id = pop_id / pop_total) %>% 
-  select(year, ttwa_nm, prop_id) %>% 
-  ggplot(., aes(x = year, y = prop_id, group = ttwa_nm)) + 
-  geom_line(alpha = 0.2) + geom_point( alpha = 0.2)
-
-# General sense of an uneven decline, mainly 2007 to 2010
-
-
-# Now let's look only at the TTWAs of interest 
-
-sum2 <- function(x) {sum(x, na.rm = T)}
-lsoa_id_by_ttwa %>% 
-  filter(ttwa_nm %in% ttwas_of_interest) %>% 
-  group_by(year, ttwa_nm) %>% 
-  summarise(pop_id = sum2(pop_id), pop_total = sum2(pop_total)) %>% 
-  mutate(prop_id = pop_id / pop_total) %>% 
-  select(year, ttwa_nm, prop_id) %>% 
-  ggplot(., aes(x = year, y = prop_id)) + 
-  geom_line() + geom_point() + 
-  facet_wrap( ~ ttwa_nm)
 
