@@ -41,27 +41,82 @@ D <- function(minority, total){
 #popvec
 #order
 
+
+# AS the inputs to the RCI function simply include a vector giving order by distance, 
+# by changing the order vector to density (highest to lowest) a relative densification 
+# index (not quite the same as RCO) can be calculated using the same function. 
+# The degree of similarity of dissimilarity between RCI and RDI can be taken as an indicator 
+# of polycentricity (maybe)
+
+
 dta %>% 
-  inner_join(dist_to_centre) %>% 
+  inner_join(dist_to_centre) %>%
+  mutate(pdens = pop_total / area) %>% 
   group_by(place, year) %>% 
   nest() %>% 
   mutate(
     pvec = map(data, ~ .[["pop_id"]]),
     tvec = map(data, ~ .[["pop_total"]]),
-    ordr = map(data, ~ order(.[["distance"]]))
+    ordr = map(data, ~ order(.[["distance"]])),
+    ordr_dens = map(data, ~ order(.[["pdens"]], decreasing = T))
          ) %>% 
   mutate(rci_val = pmap_dbl(list(pvec, tvec, ordr), RCI)) %>% 
+  mutate(rdi_val = pmap_dbl(list(pvec, tvec, ordr_dens), RCI)) %>% 
   mutate(d_val = pmap_dbl(list(pvec, tvec), D)) %>% 
-  select(place, year, rci = rci_val, d = d_val) -> rci_by_year_place
+  select(place, year, rci = rci_val, rdi = rdi_val, d = d_val) %>% 
+  ungroup -> rci_by_year_place
 
 rci_by_year_place %>% 
-  ggplot(., aes(x = factor(year), y = rci)) + 
+  ggplot(., aes(x = year, y = rci)) + 
   geom_line() + geom_point() + 
   facet_wrap(~place)
 
-  mutate(ordr = order(distance)) %>% 
-  arrange(ordr)
+rci_by_year_place %>% 
+  ggplot(., aes(x = year, y = rdi)) + 
+  geom_line() + geom_point() + 
+  facet_wrap(~place)
 
+
+
+rci_by_year_place %>% 
+  ggplot(., aes(x = year, y = rdi, group = place)) + 
+  geom_line() + geom_point() + 
+  geom_label(aes(label = place, fill = place))
+
+
+# ratio of rci / rdi 
+
+rci_by_year_place %>% 
+  mutate(lrtio = log(rci / rdi)) %>% 
+  ggplot(., aes(x = year, y = lrtio)) + 
+  geom_line() + geom_point() + 
+  facet_wrap(~place)
+
+rci_by_year_place %>% 
+  mutate(lrtio = log(rci / rdi)) %>% 
+  ggplot(., aes(x = year, y = lrtio, group = place)) + 
+  geom_line() + geom_point() + 
+  geom_label(aes(label = place, fill = place))
+
+rci_by_year_place %>% 
+  ggplot(., aes(x = year, y = rci, group = place)) + 
+  geom_line() + geom_point() + 
+  geom_label(aes(label = place, fill = place))
+
+rci_by_year_place %>% 
+  ggplot(., aes(x = year, y = d, group = place)) + 
+  geom_line() + geom_point() + 
+  geom_label(aes(label = place))
+
+
+
+rci_by_year_place %>% 
+    ggplot(., aes(x = year, y = rci)) + 
+    geom_line() + geom_point() + 
+    facet_wrap(~place)
+  
+
+  
 dta %>% 
   inner_join(dist_to_centre) %>% 
   mutate(prop_id = pop_id / pop_total) %>% 
@@ -108,7 +163,7 @@ dta %>%
   geom_point(shape = ".", alpha = 0.05) + stat_smooth(se = F) + 
   facet_wrap(~place)
 
-# Correlation between log densiy and log distance 
+# Correlation between log density and log distance 
 dta %>% 
   inner_join(dist_to_centre) %>% 
   mutate(density = pop_total / area) %>% 
@@ -130,8 +185,13 @@ dta %>%
   mutate(prop_id = pop_id / pop_total) %>% 
   ggplot(., aes(x = distance, y = log(density), colour = prop_id)) + 
   geom_point(shape = ".", alpha = 0.2) + 
-  facet_grid(year ~ place) + stat_smooth(se = F, method = "lm") + 
-  scale_colour_gradientn(colours = c("red", "green", "blue"))
+  facet_grid(year ~ place) + 
+  stat_smooth(se = F, method = "lm") + 
+  stat_smooth(se = F, linetype = "dashed") + 
+  scale_colour_gradientn(colours = c("red", "green", "blue")) + 
+  theme(
+    axis.text.x = element_text(angle = 90)
+  )
 
 
 # Now to look at temporal dependence between any two years 
