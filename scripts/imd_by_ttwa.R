@@ -37,15 +37,32 @@ dta %>%
 
 ttwas_to_keep <- c(
   London =     "E30000234", Heathrow = "E30000266", # to then combine again
-  Birmingham = "E30000239",
+  Manchester =  "E30000239",
+  Birmingham = "E30000169",
   Newcastle =  "E30000245",
   Liverpool =  "E30000233",
   Leicester =  "E30000230",
   Bristol   =  "E30000180",
   Sheffield =  "E30000261",
   Leeds     =  "E30000229",
-  Nottingham = "E30000249"
+  Nottingham = "E30000249",
+  `Warrington and Wigan` = "E30000284",
+  `Wolverhampton and Walsall` = "E30000288",
+  Luton = "E30000237",
+  Cambridge = "E30000186",
+  Southampton  = "E30000267",
+  `Guildford and Aldershot`  = "E30000212",
+  Medway = "E30000242",
+  Crawley = "E30000196",
+  Coventry = "E30000195",
+  Southend = "E30000268",
+  Oxford = "E30000250",
+  Portsmouth = "E30000254",
+  Reading = "E30000256"
+  
 )
+
+
 
 lsoa_id_by_ttwa %>% 
   filter(ttwa %in% ttwas_to_keep) %>% 
@@ -69,7 +86,22 @@ ttwa_centres <- c(
   Bristol     = "E01014540", 
   Sheffield   = "E01033264",
   Leeds       = "E01033010",
-  Nottingham  = "E01033406"
+  Nottingham  = "E01033406",
+  
+  
+  `Warrington and Wigan` = "E01033300",
+  `Wolverhampton and Walsall` = "E01010521",
+  Luton = "E01015794",
+  Cambridge = "E01032797",
+  Southampton  = "E01017140",
+  `Guildford and Aldershot`  = "E01030452",
+  Medway = "E01016130",
+  Crawley = "E01031585",
+  Coventry = "E01009642",
+  Southend = "E01015852",
+  Oxford = "E01028549",
+  Portsmouth = "E01017028",
+  Reading = "E01016358"
   
 )
 
@@ -126,14 +158,14 @@ map2(ttwa_centres, names(ttwa_centres), fn) %>%
   arrange(lsoa) -> 
   lsoa_by_dist_to_centres
 
-lsoas_of_interest  <- unique(lsoa_selected_ttwa$lsoa)
-
-lsoa_by_dist_to_centres %>% 
-  filter(lsoa %in% lsoas_of_interest) %>% 
-  group_by(lsoa) %>% 
-  filter(distance == min(distance)) %>% 
-  ungroup() %>% 
-  arrange(lsoa) %>% 
+ lsoas_of_interest  <- unique(lsoa_selected_ttwa$lsoa)
+# 
+lsoa_by_dist_to_centres %>%
+  filter(lsoa %in% lsoas_of_interest) %>%
+  group_by(lsoa) %>%
+  filter(distance == min(distance)) %>%
+  ungroup() %>%
+  arrange(lsoa) %>%
   inner_join(lsoa_area) -> lsoa_by_dist_to_centres
 
 write_csv(lsoa_by_dist_to_centres, "data/lsoa_2011_by_dist_to_centres.csv")

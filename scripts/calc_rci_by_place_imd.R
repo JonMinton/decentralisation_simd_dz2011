@@ -19,7 +19,6 @@ dist_to_centre <- read_csv("data/lsoa_2011_by_dist_to_centres.csv")
 dta <- read_csv("data/imd/imd_id_tidied.csv", col_types = "icdd")
 
 
-dist.order <- order(dz_city@data$distance_to_centre)
 
 
 D <- function(minority, total){
@@ -66,34 +65,144 @@ dta %>%
   select(place, year, rci = rci_val, rdi = rdi_val, d = d_val) %>% 
   ungroup -> rci_by_year_place
 
+# Want to arrange TTWA by population size in (say) 2010
+
+dta %>% 
+  inner_join(dist_to_centre) %>% 
+  filter(year == 2010) %>% 
+  group_by(place) %>% 
+  summarise(place_pop = sum(pop_total)) %>% 
+  arrange(desc(place_pop)) %>% 
+  .[["place"]] -> place_by_size_order
+
+
+
+
 rci_by_year_place %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
   ggplot(., aes(x = year, y = rci)) + 
   geom_line() + geom_point() + 
   facet_wrap(~place)
 
 rci_by_year_place %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
   ggplot(., aes(x = year, y = rdi)) + 
   geom_line() + geom_point() + 
   facet_wrap(~place)
 
+# D 
+rci_by_year_place %>% 
+  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = year, y = d, group = TTWA)) + 
+  geom_line() + geom_point()  +
+  geom_label(aes(label = TTWA, fill = TTWA)) + 
+  theme(
+    legend.title = element_text(size = rel(2.0)),
+    legend.text = element_text(size = rel(1.4))
+  ) + 
+  geom_hline(yintercept = 0) + 
+  coord_cartesian(ylim = c(0.25, 0.45)) + 
+  labs(x = "Year", y = "Dissimilarity Index")
 
+# D - faceted
 
 rci_by_year_place %>% 
-  ggplot(., aes(x = year, y = rdi, group = place)) + 
-  geom_line() + geom_point() + 
-  geom_label(aes(label = place, fill = place))
+  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = year, y = d)) + 
+  geom_line() + geom_point()  +
+  geom_hline(yintercept = 0) + 
+  coord_cartesian(ylim = c(0.25, 0.45)) + 
+  labs(x = "Year", y = "Dissimilarity Index") + 
+  facet_wrap(~TTWA)
+
+
+
+# RCI
+rci_by_year_place %>% 
+  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = year, y = rci, group = TTWA)) + 
+  geom_line() + geom_point()  +
+  geom_label(aes(label = TTWA, fill = TTWA)) + 
+  theme(
+    legend.title = element_text(size = rel(2.0)),
+    legend.text = element_text(size = rel(1.4))
+  ) + 
+  geom_hline(yintercept = 0) + 
+  coord_cartesian(ylim = c(-0.20, 0.40)) + 
+  labs(x = "Year", y = "Relative Centralisation Index")
+
+# RCI - faceted
+
+rci_by_year_place %>% 
+  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = year, y = rci)) + 
+  geom_line() + geom_point()  +
+  geom_hline(yintercept = 0) + 
+  coord_cartesian(ylim = c(-0.20, 0.40)) + 
+  labs(x = "Year", y = "Relative Centralisation Index") + 
+  facet_wrap(~TTWA)
+
+
+# RDI
+rci_by_year_place %>% 
+  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = year, y = rdi, group = TTWA)) + 
+  geom_line() + geom_point()  +
+  geom_label(aes(label = TTWA, fill = TTWA)) + 
+  theme(
+    legend.title = element_text(size = rel(2.0)),
+    legend.text = element_text(size = rel(1.4))
+        ) + 
+  geom_hline(yintercept = 0) + 
+  coord_cartesian(ylim = c(-0.20, 0.40)) + 
+  labs(x = "Year", y = "Relative Density Index")
+
+# RDI - faceted
+rci_by_year_place %>% 
+  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = year, y = rdi)) + 
+  geom_line() + geom_point()  +
+  geom_hline(yintercept = 0) + 
+  coord_cartesian(ylim = c(-0.20, 0.40)) + 
+  labs(x = "Year", y = "Relative Density Index") + 
+  facet_wrap(~TTWA)
 
 
 # ratio of rci / rdi 
-
 rci_by_year_place %>% 
-  mutate(lrtio = log(rci / rdi)) %>% 
+  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  mutate(lrtio = log(abs(rci) / abs(rdi))) %>% 
+  ggplot(., aes(x = year, y = lrtio, group = TTWA)) + 
+  geom_line() + geom_point()  +
+  geom_label(aes(label = TTWA, fill = TTWA)) + 
+  geom_hline(yintercept = 0, colour = "darkgrey", size = 1.2, linetype = "dashed") + 
+  labs(x = "Year", y = "Log ratio") + 
+  theme(
+    legend.title = element_text(size = rel(2.0)),
+    legend.text = element_text(size = rel(1.4))
+  ) 
+
+# ratio, faceted
+rci_by_year_place %>% 
+  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  mutate(lrtio = log(abs(rci) / abs(rdi))) %>% 
   ggplot(., aes(x = year, y = lrtio)) + 
-  geom_line() + geom_point() + 
-  facet_wrap(~place)
+  geom_line() + geom_point()  +
+  geom_hline(yintercept = 0, colour = "darkgrey", size = 1.2, linetype = "dashed") + 
+  labs(x = "Year", y = "Log ratio") + 
+  facet_wrap(~TTWA)
+
+
+
+
+
+
+
+
+
 
 rci_by_year_place %>% 
-  mutate(lrtio = log(rci / rdi)) %>% 
+  mutate(lrtio = log(abs(rci / rdi))) %>% 
   ggplot(., aes(x = year, y = lrtio, group = place)) + 
   geom_line() + geom_point() + 
   geom_label(aes(label = place, fill = place))
