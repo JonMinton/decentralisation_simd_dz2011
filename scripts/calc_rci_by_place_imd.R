@@ -82,13 +82,28 @@ rci_by_year_place %>%
   mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
   ggplot(., aes(x = year, y = rci)) + 
   geom_line() + geom_point() + 
+  geom_hline(aes(yintercept = 0)) +  
   facet_wrap(~place)
 
 rci_by_year_place %>% 
   mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
   ggplot(., aes(x = year, y = rdi)) + 
   geom_line() + geom_point() + 
+  geom_hline(aes(yintercept = 0)) +  
   facet_wrap(~place)
+
+# RDI and RCI on same plot 
+rci_by_year_place %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  select(-d) %>% 
+  gather(key = "measure", value = "value", rci, rdi) %>% 
+  ggplot(., aes(x  = year, y = value, group = measure)) + 
+  geom_line(aes(linetype = measure)) + 
+  geom_point(aes(shape = measure)) +
+  geom_hline(aes(yintercept = 0)) + 
+  facet_wrap(~place)
+
+
 
 # D 
 rci_by_year_place %>% 
@@ -191,6 +206,117 @@ rci_by_year_place %>%
   geom_hline(yintercept = 0, colour = "darkgrey", size = 1.2, linetype = "dashed") + 
   labs(x = "Year", y = "Log ratio") + 
   facet_wrap(~TTWA)
+
+
+
+
+# Share of poor, by decile of density or decile of distance ---------------
+
+
+dta %>% 
+  inner_join(dist_to_centre) %>% 
+  group_by(year, place) %>% 
+  mutate(
+    dist_decile = ntile(distance, 10)
+    ) %>% 
+  group_by(year, place, dist_decile) %>% 
+  summarise(pop_id = sum(pop_id)) %>% 
+  group_by(year, place) %>% 
+  mutate(share_id = pop_id / sum(pop_id)) %>% 
+  ggplot(., aes(x = factor(dist_decile), y = share_id, group = year)) + 
+  geom_point(aes(shape = factor(year))) + geom_line(aes(colour = factor(year))) + 
+  facet_wrap(~place)
+
+dta %>% 
+  inner_join(dist_to_centre) %>% 
+  group_by(year, place) %>% 
+  mutate(
+    density = pop_total / area,
+    density_decile = 11 - ntile(density, 10)
+  ) %>% 
+  group_by(year, place, density_decile) %>% 
+  summarise(pop_id = sum(pop_id)) %>% 
+  group_by(year, place) %>% 
+  mutate(share_id = pop_id / sum(pop_id)) %>% 
+  ggplot(., aes(x = factor(density_decile), y = share_id, group = year)) + 
+  geom_point(aes(shape = factor(year))) + geom_line(aes(colour = factor(year))) + 
+  facet_wrap(~place)
+
+
+# Density and distance on a single plot 
+dta %>% 
+  inner_join(dist_to_centre) %>% 
+  group_by(year, place) %>% 
+  mutate(
+    density = pop_total / area,
+    decile = 11 - ntile(density, 10)
+  ) %>% 
+  group_by(year, place, decile) %>% 
+  summarise(pop_id = sum(pop_id)) %>% 
+  group_by(year, place) %>% 
+  mutate(share_id_dens = pop_id / sum(pop_id)) %>% 
+  select(year, place, decile, share_id_dens) -> tmp1
+
+dta %>% 
+  inner_join(dist_to_centre) %>% 
+  group_by(year, place) %>% 
+  mutate(
+    decile = ntile(distance, 10)
+  ) %>% 
+  group_by(year, place, decile) %>% 
+  summarise(pop_id = sum(pop_id)) %>% 
+  group_by(year, place) %>% 
+  mutate(share_id_dist = pop_id / sum(pop_id)) %>% 
+  select(year, place, decile, share_id_dist) -> tmp2
+
+dd_share <- inner_join(tmp1, tmp2)
+
+rm(tmp1, tmp2)
+  
+dd_share %>% 
+  gather(key = "dd", value = "share", share_id_dens, share_id_dist) %>% 
+  ggplot(., aes(x = factor(decile), y = share, group = dd)) + 
+  geom_point(aes(shape = dd)) + geom_line(aes(linetype = dd)) + 
+  facet_grid(place ~ year) +   theme_minimal() +
+  theme(strip.text.y = element_text(angle = 0))  
+
+
+# Correlation between the two? 
+
+dd_share %>% 
+  group_by(year, place) %>% 
+  nest() %>% 
+  mutate(cr = map_dbl(data, function(x) cor(x[,2:3])[2,1])) %>% 
+  select(-data) %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = year, y = cr)) + 
+  geom_point() + geom_line() + 
+  facet_wrap(~place) + geom_hline(aes(yintercept = 0)) + 
+  labs(x = "Year", y = "Correlation between rdi and rci by deciles within year")
+
+
+
+# We should also look at relationship between distance and density 
+# (Though I think I've done this already')
+
+
+dta %>% 
+  inner_join(dist_to_centre) %>% 
+  mutate(density = pop_total / area) %>% 
+  mutate(ldens = log(density)) %>% 
+  select(year, place, distance, density) %>% 
+  group_by(year, place) %>% 
+  nest() %>% 
+  mutate(cr = map_dbl(data, ~ cor(.)[2,1])) %>% 
+  select(-data) %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = year, y = cr)) + 
+  geom_point() + geom_line() + 
+  facet_wrap(~place) + geom_hline(aes(yintercept = 0)) + 
+  labs(x = "Year", y = "Correlation between density and log-distance within TTWA")
+
+  
+
 
 
 
