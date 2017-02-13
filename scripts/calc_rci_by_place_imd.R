@@ -1,5 +1,9 @@
 # Explore IMD by city 
 
+
+# TO DO: Wales  IMD 
+
+
 rm(list = ls())
 
 require(pacman)
@@ -14,11 +18,6 @@ pacman::p_load(
 )
 
 source("scripts/from_gavin/RCI.R")
-# imd
-dist_to_centre <- read_csv("data/lsoa_2011_by_dist_to_centres.csv")
-dta <- read_csv("data/imd/imd_id_tidied.csv", col_types = "icdd")
-
-
 
 
 D <- function(minority, total){
@@ -34,6 +33,16 @@ D <- function(minority, total){
   out <- 0.5 * sum(ad)
   out
 }
+
+
+
+# imd
+dist_to_centre <- read_csv("data/lsoa_2011_by_dist_to_centres.csv")
+dta <- read_csv("data/imd/imd_id_tidied.csv", col_types = "icdd")
+
+#SIMD
+dist_to_centre_scot <- read_csv("data/dz_2011_by_dist_to_centres.csv")
+dta_scot <- read_csv("data/simd/simd_combined_on_2011.csv")
 
 # Inputs to RCI are 
 #povvec
@@ -65,15 +74,59 @@ dta %>%
   select(place, year, rci = rci_val, rdi = rdi_val, d = d_val) %>% 
   ungroup -> rci_by_year_place
 
+
+# Same but for Scotland
+dta_scot %>% 
+  inner_join(dist_to_centre_scot, by = c("dz_2011" = "dz")) %>%
+  mutate(pdens = pop_total / area) %>%
+  select(dz_2011, place, year, pop_id = pop_incomedeprived, pop_total, distance, pdens) %>% 
+  group_by(place, year) %>% 
+  nest() %>% 
+  mutate(
+    pvec = map(data, ~ .[["pop_id"]]),
+    tvec = map(data, ~ .[["pop_total"]]),
+    ordr = map(data, ~ order(.[["distance"]])),
+    ordr_dens = map(data, ~ order(.[["pdens"]], decreasing = T))
+  ) %>% 
+  mutate(rci_val = pmap_dbl(list(pvec, tvec, ordr), RCI)) %>% 
+  mutate(rdi_val = pmap_dbl(list(pvec, tvec, ordr_dens), RCI)) %>% 
+  mutate(d_val = pmap_dbl(list(pvec, tvec), D)) %>% 
+  select(place, year, rci = rci_val, rdi = rdi_val, d = d_val) %>% 
+  ungroup -> rci_by_year_place_scot
+
+
+# Combine England w/ Scotland 
+
+rci_by_year_place <- bind_rows(
+  rci_by_year_place, 
+  rci_by_year_place_scot
+) %>% 
+  filter(place != "Cardiff")
+  
 # Want to arrange TTWA by population size in (say) 2010
 
 dta %>% 
   inner_join(dist_to_centre) %>% 
   filter(year == 2010) %>% 
   group_by(place) %>% 
-  summarise(place_pop = sum(pop_total)) %>% 
+  summarise(place_pop = sum(pop_total)) -> tmp1
+
+
+dta_scot %>% 
+  inner_join(dist_to_centre_scot, by = c("dz_2011" = "dz")) %>% 
+  filter(year == 2009) %>% 
+  group_by(place) %>% 
+  summarise(place_pop = sum(pop_total)) -> tmp2
+
+tmp1 %>% 
+  bind_rows(tmp2) %>% 
   arrange(desc(place_pop)) %>% 
   .[["place"]] -> place_by_size_order
+
+rm(tmp1, tmp2)
+
+
+
 
 
 
@@ -104,20 +157,6 @@ rci_by_year_place %>%
   facet_wrap(~place)
 
 
-
-# D 
-rci_by_year_place %>% 
-  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
-  ggplot(., aes(x = year, y = d, group = TTWA)) + 
-  geom_line() + geom_point()  +
-  geom_label(aes(label = TTWA, fill = TTWA)) + 
-  theme(
-    legend.title = element_text(size = rel(2.0)),
-    legend.text = element_text(size = rel(1.4))
-  ) + 
-  geom_hline(yintercept = 0) + 
-  coord_cartesian(ylim = c(0.25, 0.45)) + 
-  labs(x = "Year", y = "Dissimilarity Index")
 
 # D - faceted
 
@@ -212,9 +251,17 @@ rci_by_year_place %>%
 
 # Share of poor, by decile of density or decile of distance ---------------
 
-
+dta_scot %>% 
+  inner_join(dist_to_centre_scot, by = c("dz_2011" = "dz")) %>% 
+  select(year, lsoa = dz_2011, pop_id = pop_incomedeprived, pop_total, place, distance, area) -> tmp1
+  
 dta %>% 
-  inner_join(dist_to_centre) %>% 
+  inner_join(dist_to_centre) -> tmp2
+
+ypd <- bind_rows(tmp1, tmp2) %>% filter(place != "Cardiff")
+rm(tmp1, tmp2)
+
+ypd %>% 
   group_by(year, place) %>% 
   mutate(
     dist_decile = ntile(distance, 10)
@@ -227,8 +274,8 @@ dta %>%
   geom_point(aes(shape = factor(year))) + geom_line(aes(colour = factor(year))) + 
   facet_wrap(~place)
 
-dta %>% 
-  inner_join(dist_to_centre) %>% 
+
+ypd %>% 
   group_by(year, place) %>% 
   mutate(
     density = pop_total / area,
@@ -244,8 +291,7 @@ dta %>%
 
 
 # Density and distance on a single plot 
-dta %>% 
-  inner_join(dist_to_centre) %>% 
+ypd %>% 
   group_by(year, place) %>% 
   mutate(
     density = pop_total / area,
@@ -257,8 +303,7 @@ dta %>%
   mutate(share_id_dens = pop_id / sum(pop_id)) %>% 
   select(year, place, decile, share_id_dens) -> tmp1
 
-dta %>% 
-  inner_join(dist_to_centre) %>% 
+ypd %>%  
   group_by(year, place) %>% 
   mutate(
     decile = ntile(distance, 10)

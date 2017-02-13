@@ -30,6 +30,8 @@ simd_2016_simplified <- simd_combined %>%
 
 simd_2011_reweighted <- bind_rows(simd_2011_reweighted, simd_2016_simplified)
 
+write_csv(x = simd_2011_reweighted, path = "data/simd/simd_combined_on_2011.csv")
+
 # Shapefile for 2011
 dz_2011 <- read_shape(file = "shapefiles/SG_DataZoneBdry_2011/SG_DataZone_Bdry_2011.shp")
 
