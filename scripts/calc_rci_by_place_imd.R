@@ -9,8 +9,9 @@ rm(list = ls())
 require(pacman)
 
 pacman::p_load(
+  tidyverse,
   readr, readxl,
-  stringr, tidyr, dplyr, 
+  stringr,  
   purrr,
   rgeos,
   ggplot2,
@@ -136,14 +137,20 @@ rci_by_year_place %>%
   ggplot(., aes(x = year, y = rci)) + 
   geom_line() + geom_point() + 
   geom_hline(aes(yintercept = 0)) +  
-  facet_wrap(~place)
+  facet_wrap(~place) + 
+  labs(title = "RCI by year and TTWA", subtitle = "TTWAs arranged by size", x = "Year", y = "Relative Centralisation Index (RCI)")
+ggsave("figures/TTWA/rci_by_year_ttwa.png", height= 25, width = 25, units = "cm", dpi = 300)
+
 
 rci_by_year_place %>% 
   mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
   ggplot(., aes(x = year, y = rdi)) + 
   geom_line() + geom_point() + 
   geom_hline(aes(yintercept = 0)) +  
-  facet_wrap(~place)
+  facet_wrap(~place) + 
+  labs(title = "RDI by year and TTWA", subtitle = "TTWAs arranged by size", x = "Year", y = "Relative 'Densification' Index (RDI)")
+ggsave("figures/TTWA/rdi_by_year_ttwa.png", height= 25, width = 25, units = "cm", dpi = 300)
+
 
 # RDI and RCI on same plot 
 rci_by_year_place %>% 
@@ -154,7 +161,10 @@ rci_by_year_place %>%
   geom_line(aes(linetype = measure)) + 
   geom_point(aes(shape = measure)) +
   geom_hline(aes(yintercept = 0)) + 
-  facet_wrap(~place)
+  facet_wrap(~place) +
+  labs(title = "RDI and RCI by year and TTWA", subtitle = "TTWAs arranged by size", x = "Year", y = "Score")
+ggsave("figures/TTWA/rdi_rci_by_year_ttwa.png", height= 25, width = 25, units = "cm", dpi = 300)
+
 
 
 
@@ -167,86 +177,24 @@ rci_by_year_place %>%
   geom_hline(yintercept = 0) + 
   coord_cartesian(ylim = c(0.25, 0.45)) + 
   labs(x = "Year", y = "Dissimilarity Index") + 
-  facet_wrap(~TTWA)
+  facet_wrap(~TTWA) + 
+  labs(title = "D by year and TTWA", subtitle = "TTWAs arranged by size", x = "Year", y = "Dissimilarity Index")
+ggsave("figures/TTWA/d_by_year_ttwa.png", height= 25, width = 25, units = "cm", dpi = 300)
 
 
-
-# RCI
-rci_by_year_place %>% 
-  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
-  ggplot(., aes(x = year, y = rci, group = TTWA)) + 
-  geom_line() + geom_point()  +
-  geom_label(aes(label = TTWA, fill = TTWA)) + 
-  theme(
-    legend.title = element_text(size = rel(2.0)),
-    legend.text = element_text(size = rel(1.4))
-  ) + 
-  geom_hline(yintercept = 0) + 
-  coord_cartesian(ylim = c(-0.20, 0.40)) + 
-  labs(x = "Year", y = "Relative Centralisation Index")
-
-# RCI - faceted
-
-rci_by_year_place %>% 
-  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
-  ggplot(., aes(x = year, y = rci)) + 
-  geom_line() + geom_point()  +
-  geom_hline(yintercept = 0) + 
-  coord_cartesian(ylim = c(-0.20, 0.40)) + 
-  labs(x = "Year", y = "Relative Centralisation Index") + 
-  facet_wrap(~TTWA)
-
-
-# RDI
-rci_by_year_place %>% 
-  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
-  ggplot(., aes(x = year, y = rdi, group = TTWA)) + 
-  geom_line() + geom_point()  +
-  geom_label(aes(label = TTWA, fill = TTWA)) + 
-  theme(
-    legend.title = element_text(size = rel(2.0)),
-    legend.text = element_text(size = rel(1.4))
-        ) + 
-  geom_hline(yintercept = 0) + 
-  coord_cartesian(ylim = c(-0.20, 0.40)) + 
-  labs(x = "Year", y = "Relative Density Index")
-
-# RDI - faceted
-rci_by_year_place %>% 
-  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
-  ggplot(., aes(x = year, y = rdi)) + 
-  geom_line() + geom_point()  +
-  geom_hline(yintercept = 0) + 
-  coord_cartesian(ylim = c(-0.20, 0.40)) + 
-  labs(x = "Year", y = "Relative Density Index") + 
-  facet_wrap(~TTWA)
-
-
-# ratio of rci / rdi 
-rci_by_year_place %>% 
-  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
-  mutate(lrtio = log(abs(rci) / abs(rdi))) %>% 
-  ggplot(., aes(x = year, y = lrtio, group = TTWA)) + 
-  geom_line() + geom_point()  +
-  geom_label(aes(label = TTWA, fill = TTWA)) + 
-  geom_hline(yintercept = 0, colour = "darkgrey", size = 1.2, linetype = "dashed") + 
-  labs(x = "Year", y = "Log ratio") + 
-  theme(
-    legend.title = element_text(size = rel(2.0)),
-    legend.text = element_text(size = rel(1.4))
-  ) 
 
 # ratio, faceted
 rci_by_year_place %>% 
   mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
-  mutate(lrtio = log(abs(rci) / abs(rdi))) %>% 
-  ggplot(., aes(x = year, y = lrtio)) + 
+  mutate(rtio = abs(rci) / abs(rdi)) %>% 
+  ggplot(., aes(x = year, y = rtio)) + 
   geom_line() + geom_point()  +
-  geom_hline(yintercept = 0, colour = "darkgrey", size = 1.2, linetype = "dashed") + 
-  labs(x = "Year", y = "Log ratio") + 
-  facet_wrap(~TTWA)
-
-
+  scale_y_log10(breaks = c(0.05, 0.1, 0.2, 0.5, 1, 2)) + 
+  labs(x = "Year", y = "Ratio of |RCI| / |RDI| (log scale)", title = "Ratio of RCI to RDI", subtitle = "Ratio of absolute values"
+       ) + 
+  facet_wrap(~TTWA) + 
+  geom_hline(aes(yintercept = 1), lty = "dashed") 
+ggsave("figures/TTWA/ratio_abs_by_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
 
 
 # Share of poor, by decile of density or decile of distance ---------------
