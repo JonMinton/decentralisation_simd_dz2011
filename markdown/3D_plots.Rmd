@@ -1,0 +1,162 @@
+---
+title: "3D relationships between RDI, RCI and D in TTWAs"
+author: "Jon Minton"
+date: "15 February 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+# Code chunk example from http://stackoverflow.com/questions/24585254/working-with-knitr-using-subdirectories
+library(knitr)
+library(rgl)
+opts_knit$set(root.dir=normalizePath('../'))
+knit_hooks$set(webgl = hook_webgl)
+
+```
+
+# Aim
+
+This document will (hopefully) allow D, RCI and RDI to be explored interactively for each of the TTWAs. 
+For each TTWA, the first period is indicated with a blue sphere, the last with a red sphere, and intermediate spheres along the path are grey. 
+
+
+```{r setup2, include = F, echo = F}
+
+require(pacman)
+
+pacman::p_load(
+  tidyverse,
+  readr, readxl,
+  forcats,
+  stringr,  
+  purrr,
+  rgeos,
+  ggplot2,
+  tmap
+)
+
+source("scripts/from_gavin/RCI.R")
+
+
+D <- function(minority, total){
+  majority      <- total - minority
+  MINORITY      <- sum(minority)
+  MAJORITY      <- sum(majority)
+  
+  p1 <- minority / MINORITY
+  p2 <- majority / MAJORITY 
+  
+  ad <- abs(p1 - p2)
+  
+  out <- 0.5 * sum(ad)
+  out
+}
+
+
+
+# imd
+dist_to_centre <- read_csv("data/lsoa_2011_by_dist_to_centres.csv")
+dta <- read_csv("data/imd/imd_id_tidied.csv", col_types = "icdd")
+
+#SIMD
+dist_to_centre_scot <- read_csv("data/dz_2011_by_dist_to_centres.csv")
+dta_scot <- read_csv("data/simd/simd_combined_on_2011.csv")
+
+# Inputs to RCI are 
+#povvec
+#popvec
+#order
+
+
+# AS the inputs to the RCI function simply include a vector giving order by distance, 
+# by changing the order vector to density (highest to lowest) a relative densification 
+# index (not quite the same as RCO) can be calculated using the same function. 
+# The degree of similarity of dissimilarity between RCI and RDI can be taken as an indicator 
+# of polycentricity (maybe)
+
+
+dta %>% 
+  inner_join(dist_to_centre) %>%
+  mutate(pdens = pop_total / area) %>% 
+  group_by(place, year) %>% 
+  nest() %>% 
+  mutate(
+    pvec = map(data, ~ .[["pop_id"]]),
+    tvec = map(data, ~ .[["pop_total"]]),
+    ordr = map(data, ~ order(.[["distance"]])),
+    ordr_dens = map(data, ~ order(.[["pdens"]], decreasing = T))
+         ) %>% 
+  mutate(rci_val = pmap_dbl(list(pvec, tvec, ordr), RCI)) %>% 
+  mutate(rdi_val = pmap_dbl(list(pvec, tvec, ordr_dens), RCI)) %>% 
+  mutate(d_val = pmap_dbl(list(pvec, tvec), D)) %>% 
+  select(place, year, rci = rci_val, rdi = rdi_val, d = d_val) %>% 
+  ungroup -> rci_by_year_place
+
+
+# Same but for Scotland
+dta_scot %>% 
+  inner_join(dist_to_centre_scot, by = c("dz_2011" = "dz")) %>%
+  mutate(pdens = pop_total / area) %>%
+  select(dz_2011, place, year, pop_id = pop_incomedeprived, pop_total, distance, pdens) %>% 
+  group_by(place, year) %>% 
+  nest() %>% 
+  mutate(
+    pvec = map(data, ~ .[["pop_id"]]),
+    tvec = map(data, ~ .[["pop_total"]]),
+    ordr = map(data, ~ order(.[["distance"]])),
+    ordr_dens = map(data, ~ order(.[["pdens"]], decreasing = T))
+  ) %>% 
+  mutate(rci_val = pmap_dbl(list(pvec, tvec, ordr), RCI)) %>% 
+  mutate(rdi_val = pmap_dbl(list(pvec, tvec, ordr_dens), RCI)) %>% 
+  mutate(d_val = pmap_dbl(list(pvec, tvec), D)) %>% 
+  select(place, year, rci = rci_val, rdi = rdi_val, d = d_val) %>% 
+  ungroup -> rci_by_year_place_scot
+
+
+# Combine England w/ Scotland 
+
+rci_by_year_place <- bind_rows(
+  rci_by_year_place, 
+  rci_by_year_place_scot
+) %>% 
+  filter(place != "Cardiff")
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r 3d_function, echo=FALSE, cache = T}
+
+show_3d_change <- function(PLACE){
+  rci_by_year_place %>% 
+    filter(place == PLACE) %>% 
+    arrange(year) -> tmp
+  
+  n <- nrow(tmp)
+  
+
+  with(tmp, rgl::plot3d(rdi, rci, d, type = "l", expand = 1.10))
+
+  with(tmp, rgl::plot3d(rdi, rci, d, type = "s", 
+                        col = c("red", rep("black", n - 2), "blue"), 
+                        alpha = c(1, rep(0.5, n-2), 1), add = T))
+  rgl::planes3d(1,0,0, 0, alpha = 0.2, add = T)
+  rgl::planes3d(0,1,0, 0, alpha = 0.2, add = T)
+  title3d(PLACE)
+  NULL
+}
+```
+
+```{r do_glasgow, webgl = T}
+show_3d_change("Glasgow")
+
+
+```
+show_3d_change("London")
+show_3d_change("Edinburgh")
+show_3d_change("Leicester")
+show_3d_change("Cambridge")
+show_3d_change("Leicester")
+

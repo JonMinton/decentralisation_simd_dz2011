@@ -11,6 +11,7 @@ require(pacman)
 pacman::p_load(
   tidyverse,
   readr, readxl,
+  forcats,
   stringr,  
   purrr,
   rgeos,
@@ -20,6 +21,10 @@ pacman::p_load(
 
 source("scripts/from_gavin/RCI.R")
 
+
+
+
+# Dissimilarity index 
 
 D <- function(minority, total){
   majority      <- total - minority
@@ -35,6 +40,22 @@ D <- function(minority, total){
   out
 }
 
+# Work out the spatial concentration of people in area
+calc_gini <- function(DATA){
+  
+  df <- data_frame(x = c(0, DATA$area), y = c(0, DATA$pop_total)) %>% 
+    arrange(x) %>% 
+    mutate(
+      sx = cumsum(x) / sum(x),
+      sy = cumsum(y) / sum(y)
+    )
+  
+  fn <- approxfun(df$sx, df$sy)
+  auc <- integrate(fn, 0, 1)$value
+  print(auc)
+  out <- auc - 0.5
+  out
+}
 
 
 # imd
@@ -51,11 +72,6 @@ dta_scot <- read_csv("data/simd/simd_combined_on_2011.csv")
 #order
 
 
-# AS the inputs to the RCI function simply include a vector giving order by distance, 
-# by changing the order vector to density (highest to lowest) a relative densification 
-# index (not quite the same as RCO) can be calculated using the same function. 
-# The degree of similarity of dissimilarity between RCI and RDI can be taken as an indicator 
-# of polycentricity (maybe)
 
 
 dta %>% 
@@ -63,7 +79,9 @@ dta %>%
   mutate(pdens = pop_total / area) %>% 
   group_by(place, year) %>% 
   nest() %>% 
+  filter(place != "Cardiff") %>% 
   mutate(
+    pop_area_conc = map_dbl(data, calc_gini),
     pvec = map(data, ~ .[["pop_id"]]),
     tvec = map(data, ~ .[["pop_total"]]),
     ordr = map(data, ~ order(.[["distance"]])),
@@ -72,7 +90,7 @@ dta %>%
   mutate(rci_val = pmap_dbl(list(pvec, tvec, ordr), RCI)) %>% 
   mutate(rdi_val = pmap_dbl(list(pvec, tvec, ordr_dens), RCI)) %>% 
   mutate(d_val = pmap_dbl(list(pvec, tvec), D)) %>% 
-  select(place, year, rci = rci_val, rdi = rdi_val, d = d_val) %>% 
+  select(place, year, rci = rci_val, rdi = rdi_val, d = d_val, pop_area_conc) %>% 
   ungroup -> rci_by_year_place
 
 
@@ -80,10 +98,11 @@ dta %>%
 dta_scot %>% 
   inner_join(dist_to_centre_scot, by = c("dz_2011" = "dz")) %>%
   mutate(pdens = pop_total / area) %>%
-  select(dz_2011, place, year, pop_id = pop_incomedeprived, pop_total, distance, pdens) %>% 
+  select(dz_2011, place, year, pop_id = pop_incomedeprived, pop_total, distance, pdens, area) %>% 
   group_by(place, year) %>% 
   nest() %>% 
   mutate(
+    pop_area_conc = map_dbl(data, calc_gini),
     pvec = map(data, ~ .[["pop_id"]]),
     tvec = map(data, ~ .[["pop_total"]]),
     ordr = map(data, ~ order(.[["distance"]])),
@@ -92,7 +111,7 @@ dta_scot %>%
   mutate(rci_val = pmap_dbl(list(pvec, tvec, ordr), RCI)) %>% 
   mutate(rdi_val = pmap_dbl(list(pvec, tvec, ordr_dens), RCI)) %>% 
   mutate(d_val = pmap_dbl(list(pvec, tvec), D)) %>% 
-  select(place, year, rci = rci_val, rdi = rdi_val, d = d_val) %>% 
+  select(place, year, rci = rci_val, rdi = rdi_val, d = d_val, pop_area_conc) %>% 
   ungroup -> rci_by_year_place_scot
 
 
@@ -101,9 +120,11 @@ dta_scot %>%
 rci_by_year_place <- bind_rows(
   rci_by_year_place, 
   rci_by_year_place_scot
-) %>% 
-  filter(place != "Cardiff")
+) 
   
+
+
+
 # Want to arrange TTWA by population size in (say) 2010
 
 dta %>% 
@@ -127,6 +148,22 @@ tmp1 %>%
 rm(tmp1, tmp2)
 
 
+
+# pop_area_conc by year and place 
+
+rci_by_year_place %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = year, y = pop_area_conc)) + 
+  facet_wrap(~place) + 
+  geom_line() + geom_point()
+
+
+rci_by_year_place %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = year, y = pop_area_conc, group = place)) + 
+  geom_line(alpha = 0.6) + geom_text(aes(label = place))  + 
+  labs(x = "Year", y = "Absolute Concentration Score", title = "Absolute population concentration over time")
+ggsave("figures/TTWA/population_concentration_scores.png", height = 30, width = 30, dpi =300, units = "cm")
 
 
 
@@ -210,35 +247,175 @@ ypd <- bind_rows(tmp1, tmp2) %>% filter(place != "Cardiff")
 rm(tmp1, tmp2)
 
 ypd %>% 
-  group_by(year, place) %>% 
+  mutate(
+    year = factor(year)
+  ) %>% 
+  mutate(
+    Year = fct_recode(
+      year, 
+      `2004` = "2004",
+      `2006-07` = "2006",
+      `2006-07` = "2007",
+      `2009-10` = "2009",
+      `2009-10` = "2010",
+      `2012`      = "2012",    
+      `2015-16` = "2015",
+      `2015-16` = "2016"
+    )
+  ) %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  group_by(Year, place) %>% 
   mutate(
     dist_decile = ntile(distance, 10)
     ) %>% 
-  group_by(year, place, dist_decile) %>% 
+  group_by(Year, place, dist_decile) %>% 
   summarise(pop_id = sum(pop_id)) %>% 
-  group_by(year, place) %>% 
+  group_by(Year, place) %>% 
   mutate(share_id = pop_id / sum(pop_id)) %>% 
-  ggplot(., aes(x = factor(dist_decile), y = share_id, group = year)) + 
-  geom_point(aes(shape = factor(year))) + geom_line(aes(colour = factor(year))) + 
-  facet_wrap(~place)
+  ggplot(., aes(x = factor(dist_decile), y = share_id, group = Year)) + 
+  geom_point(aes(shape = Year)) + geom_line(aes(colour = Year)) + 
+  facet_wrap(~place) + 
+  labs(
+    x = "Decile of distance from centre in TTWA",
+    y = "Share of TTWA's income deprived population", 
+    title = "Share of TTWA income deprivation by decile of distance from centre",
+    subtitle = "TTWAs arranged by size",
+    caption = "Scottish and English IMDs are for different years"
+  ) 
+ggsave("figures/TTWA/id_share_by_dist_decile_and_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
+
+
 
 
 ypd %>% 
-  group_by(year, place) %>% 
+  mutate(
+    year = factor(year)
+  ) %>% 
+  mutate(
+    Year = fct_recode(
+      year, 
+      `2004` = "2004",
+      `2006-07` = "2006",
+      `2006-07` = "2007",
+      `2009-10` = "2009",
+      `2009-10` = "2010",
+      `2012`      = "2012",    
+      `2015-16` = "2015",
+      `2015-16` = "2016"
+    )
+  ) %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  group_by(Year, place) %>% 
   mutate(
     density = pop_total / area,
     density_decile = 11 - ntile(density, 10)
   ) %>% 
-  group_by(year, place, density_decile) %>% 
+  group_by(Year, place, density_decile) %>% 
   summarise(pop_id = sum(pop_id)) %>% 
-  group_by(year, place) %>% 
+  group_by(Year, place) %>% 
   mutate(share_id = pop_id / sum(pop_id)) %>% 
-  ggplot(., aes(x = factor(density_decile), y = share_id, group = year)) + 
-  geom_point(aes(shape = factor(year))) + geom_line(aes(colour = factor(year))) + 
-  facet_wrap(~place)
+  ggplot(., aes(x = factor(density_decile), y = share_id, group = Year)) + 
+  geom_point(aes(shape = Year)) + geom_line(aes(colour = Year)) + 
+  facet_wrap(~place) + 
+  labs(
+    x = "Decile of density in TTWA (1 = most dense)",
+    y = "Share of TTWA's income deprived population", 
+    title = "Share of TTWA income deprivation by decile of density",
+    subtitle = "TTWAs arranged by size",
+    caption = "Scottish and English IMDs are for different years"
+  ) 
+ggsave("figures/TTWA/id_share_by_dens_decile_and_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
 
 
 # Density and distance on a single plot 
+ypd %>% 
+  mutate(
+    year = factor(year)
+  ) %>% 
+  mutate(
+    Year = fct_recode(
+      year, 
+      `2004` = "2004",
+      `2006-07` = "2006",
+      `2006-07` = "2007",
+      `2009-10` = "2009",
+      `2009-10` = "2010",
+      `2012`      = "2012",    
+      `2015-16` = "2015",
+      `2015-16` = "2016"
+    )
+  ) %>% 
+  group_by(Year, place) %>% 
+  mutate(
+    density = pop_total / area,
+    decile = 11 - ntile(density, 10)
+  ) %>% 
+  group_by(Year, place, decile) %>% 
+  summarise(pop_id = sum(pop_id)) %>% 
+  group_by(Year, place) %>% 
+  mutate(share_id_dens = pop_id / sum(pop_id)) %>% 
+  select(Year, place, decile, share_id_dens) -> tmp1
+
+ypd %>% 
+  mutate(
+    year = factor(year)
+  ) %>% 
+  mutate(
+    Year = fct_recode(
+      year, 
+      `2004` = "2004",
+      `2006-07` = "2006",
+      `2006-07` = "2007",
+      `2009-10` = "2009",
+      `2009-10` = "2010",
+      `2012`      = "2012",    
+      `2015-16` = "2015",
+      `2015-16` = "2016"
+    )
+  ) %>% 
+  group_by(Year, place) %>% 
+  mutate(
+    decile = ntile(distance, 10)
+  ) %>% 
+  group_by(Year, place, decile) %>% 
+  summarise(pop_id = sum(pop_id)) %>% 
+  group_by(Year, place) %>% 
+  mutate(share_id_dist = pop_id / sum(pop_id)) %>% 
+  select(Year, place, decile, share_id_dist) -> tmp2
+
+dd_share <- inner_join(tmp1, tmp2)
+
+rm(tmp1, tmp2)
+  
+dd_share %>% 
+  gather(key = "dd", value = "share", share_id_dens, share_id_dist) %>%
+  mutate(dd = fct_recode(dd, Density = "share_id_dens", Distance = "share_id_dist")) %>% 
+  ungroup() %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = factor(decile), y = share, group = dd)) + 
+  geom_point(aes(shape = dd)) + geom_line(aes(linetype = dd)) + 
+  facet_grid(place ~ Year) +   theme_minimal() +
+  theme(strip.text.y = element_text(angle = 0)) +
+  labs(
+    title = "Correspondence between Income Deprived share and deciles of density and distance",
+    x = "Decile of density or distance",
+    y = "Share of TTWA's income deprived population",
+    caption = "No English IMD data for 2012"
+       ) + 
+  guides(
+    shape = guide_legend(
+      title = "Density/Distance decile"
+    ),
+    linetype = guide_legend(
+      title = "Density/Distance decile"
+    )
+  )
+ggsave("figures/TTWA/dens_dist_decile_correspondence.png", height = 40, width = 30, units = "cm", dpi = 300)
+
+
+# Correlation between the two? 
+
+
 ypd %>% 
   group_by(year, place) %>% 
   mutate(
@@ -251,7 +428,7 @@ ypd %>%
   mutate(share_id_dens = pop_id / sum(pop_id)) %>% 
   select(year, place, decile, share_id_dens) -> tmp1
 
-ypd %>%  
+ypd %>% 
   group_by(year, place) %>% 
   mutate(
     decile = ntile(distance, 10)
@@ -265,184 +442,67 @@ ypd %>%
 dd_share <- inner_join(tmp1, tmp2)
 
 rm(tmp1, tmp2)
-  
-dd_share %>% 
-  gather(key = "dd", value = "share", share_id_dens, share_id_dist) %>% 
-  ggplot(., aes(x = factor(decile), y = share, group = dd)) + 
-  geom_point(aes(shape = dd)) + geom_line(aes(linetype = dd)) + 
-  facet_grid(place ~ year) +   theme_minimal() +
-  theme(strip.text.y = element_text(angle = 0))  
-
-
-# Correlation between the two? 
-
 dd_share %>% 
   group_by(year, place) %>% 
   nest() %>% 
   mutate(cr = map_dbl(data, function(x) cor(x[,2:3])[2,1])) %>% 
   select(-data) %>% 
   mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ungroup() %>% 
   ggplot(., aes(x = year, y = cr)) + 
   geom_point() + geom_line() + 
   facet_wrap(~place) + geom_hline(aes(yintercept = 0)) + 
   labs(x = "Year", y = "Correlation between rdi and rci by deciles within year")
+ggsave("figures/TTWA/cor_between_dd_dec_over_time.png", height = 25, width = 25, units = "cm", dpi = 300)
 
 
 
-# We should also look at relationship between distance and density 
-# (Though I think I've done this already')
 
+# RDI, RCI, D - path over time for each TTWA 
 
-dta %>% 
-  inner_join(dist_to_centre) %>% 
-  mutate(density = pop_total / area) %>% 
-  mutate(ldens = log(density)) %>% 
-  select(year, place, distance, density) %>% 
-  group_by(year, place) %>% 
-  nest() %>% 
-  mutate(cr = map_dbl(data, ~ cor(.)[2,1])) %>% 
-  select(-data) %>% 
+rci_by_year_place %>% 
   mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
-  ggplot(., aes(x = year, y = cr)) + 
-  geom_point() + geom_line() + 
-  facet_wrap(~place) + geom_hline(aes(yintercept = 0)) + 
-  labs(x = "Year", y = "Correlation between density and log-distance within TTWA")
-
-  
-
-
-
-
-
-
-
-
-
-
-
-rci_by_year_place %>% 
-  mutate(lrtio = log(abs(rci / rdi))) %>% 
-  ggplot(., aes(x = year, y = lrtio, group = place)) + 
-  geom_line() + geom_point() + 
-  geom_label(aes(label = place, fill = place))
-
-rci_by_year_place %>% 
-  ggplot(., aes(x = year, y = rci, group = place)) + 
-  geom_line() + geom_point() + 
-  geom_label(aes(label = place, fill = place))
-
-rci_by_year_place %>% 
-  ggplot(., aes(x = year, y = d, group = place)) + 
-  geom_line() + geom_point() + 
-  geom_label(aes(label = place))
-
-
-
-rci_by_year_place %>% 
-    ggplot(., aes(x = year, y = rci)) + 
-    geom_line() + geom_point() + 
-    facet_wrap(~place)
-  
-
-  
-dta %>% 
-  inner_join(dist_to_centre) %>% 
-  mutate(prop_id = pop_id / pop_total) %>% 
-  ggplot(., aes(x = distance, y = prop_id)) +
-  geom_point(alpha = 0.1) + stat_smooth() + 
-  facet_grid(year ~ place)
-
-dta %>% 
-  inner_join(dist_to_centre) %>% 
-  mutate(prop_id = pop_id / pop_total) %>% 
-  mutate(year = factor(year)) %>%
-  ggplot(., aes(x = distance, y = prop_id, group = year, colour = year)) +
-  stat_smooth(se = F) + 
-  facet_wrap( ~ place)
-
-
-# Let's look at density 
-dta %>% 
-  inner_join(dist_to_centre) %>% 
-  mutate(prop_id = pop_id / pop_total) %>% 
-  mutate(density = pop_total / area) %>% 
-  mutate(year = factor(year)) %>% 
-  ggplot(., aes(x  = density, y = prop_id, group = year, colour = year)) + 
-  stat_smooth(se = F) + 
-  facet_wrap( ~ place)
-
-# Now log density
-dta %>% 
-  inner_join(dist_to_centre) %>% 
-  mutate(prop_id = pop_id / pop_total) %>% 
-  mutate(density = pop_total / area) %>% 
-  mutate(year = factor(year)) %>% 
-  ggplot(., aes(x  = log(density), y = prop_id, group = year, colour = year)) + 
-  stat_smooth(se = F) + 
-  facet_wrap( ~ place)
-
-# Let's look a correlation between density and distance 
-
-dta %>% 
-  inner_join(dist_to_centre) %>% 
-  mutate(density = pop_total / area) %>% 
-  mutate(year = factor(year)) %>% 
-  ggplot(., aes(x = distance, y = log(density), group = year, colour = year)) +
-  geom_point(shape = ".", alpha = 0.05) + stat_smooth(se = F) + 
+  ggplot(., aes(x = rci, y = rdi)) + 
+  geom_path(aes(alpha = year), colour = "blue") +
+  geom_text(aes(label = year), size = rel(3), data = subset(rci_by_year_place, subset = year %in% c(2004, 2015, 2016))) +
   facet_wrap(~place)
 
-# Correlation between log density and log distance 
-dta %>% 
-  inner_join(dist_to_centre) %>% 
-  mutate(density = pop_total / area) %>% 
-  mutate(year = factor(year)) %>% 
-  ggplot(., aes(x = log(distance), y = log(density), group = year, colour = year)) +
-  geom_point(shape = ".", alpha = 0.05) + stat_smooth(se = F) + 
-  facet_wrap(~place)
-
-# Associations between distance and log density are more linear
-# than those between log distance and log density
-
-
-# Density, deprivation and distance 
-
-dta %>% 
-  inner_join(dist_to_centre) %>% 
-  mutate(density = pop_total / area) %>% 
-  mutate(year = factor(year)) %>% 
-  mutate(prop_id = pop_id / pop_total) %>% 
-  ggplot(., aes(x = distance, y = log(density), colour = prop_id)) + 
-  geom_point(shape = ".", alpha = 0.2) + 
-  facet_grid(year ~ place) + 
-  stat_smooth(se = F, method = "lm") + 
-  stat_smooth(se = F, linetype = "dashed") + 
-  scale_colour_gradientn(colours = c("red", "green", "blue")) + 
-  theme(
-    axis.text.x = element_text(angle = 90)
-  )
-
-
-# Now to look at temporal dependence between any two years 
-
-dta %>% 
-  mutate(prop_id = pop_id / pop_total) %>%
-  left_join(dist_to_centre) %>% 
-  filter(year %in% c(2004, 2015)) %>%
-  select(year, place, lsoa, prop_id) %>% 
-  spread(year, prop_id) -> tmp
-tmp %>% 
-  filter(!is.na(place)) -> tmp2
-
-tmp %>% 
-  ggplot(., aes(y = `2015`, x = `2004`)) + 
-  geom_point(shape = ".", alpha = 0.1) + 
-  geom_point(data = tmp2) + 
+rci_by_year_place %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = rci, y = d)) + 
+  geom_path(aes(alpha = year), colour = "blue") +
+  geom_text(aes(label = year), size = rel(3), data = subset(rci_by_year_place, subset = year %in% c(2004, 2015, 2016))) +
   facet_wrap(~place)
 
 
-# Not that informativve. There may be a greater fall over some periods than others. 
 
 
 
+# 3D attempt using RGL ----------------------------------------------------
 
+
+show_3d_change <- function(PLACE){
+  rci_by_year_place %>% 
+    filter(place == PLACE) %>% 
+    arrange(year) -> tmp
   
+  n <- nrow(tmp)
+  
+
+  with(tmp, rgl::plot3d(rdi, rci, d, type = "l", expand = 1.10))
+
+  with(tmp, rgl::plot3d(rdi, rci, d, type = "s", 
+                        col = c("red", rep("black", n - 2), "blue"), 
+                        alpha = c(1, rep(0.5, n-2), 1), add = T))
+  rgl::planes3d(1,0,0, 0, alpha = 0.2, add = T)
+  rgl::planes3d(0,1,0, 0, alpha = 0.2, add = T)
+  title3d(PLACE)
+  NULL
+}
+
+show_3d_change("Glasgow")
+show_3d_change("London")
+show_3d_change("Edinburgh")
+show_3d_change("Leicester")
+show_3d_change("Cambridge")
+show_3d_change("Leicester")
