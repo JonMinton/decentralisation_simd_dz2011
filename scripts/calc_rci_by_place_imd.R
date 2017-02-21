@@ -57,7 +57,6 @@ calc_gini <- function(DATA){
   out
 }
 
-
 # imd
 dist_to_centre <- read_csv("data/lsoa_2011_by_dist_to_centres.csv")
 dta <- read_csv("data/imd/imd_id_tidied.csv", col_types = "icdd")
@@ -123,6 +122,71 @@ rci_by_year_place <- bind_rows(
 ) 
   
 
+# Regression summary? 
+# Predictors of RCI 
+
+lm(rci ~ rdi + d, data = rci_by_year_place) %>% summary()
+
+# Year interactions
+lm(rci ~ (rdi + d) * I(year - min(year)), data = rci_by_year_place) %>% summary()
+# Interactions not stat sig
+
+# Year as independent term
+lm(rci ~ (rdi + d) + I(year - min(year)), data = rci_by_year_place) %>% summary()
+# Year not stat sig
+
+# Year only
+lm(rci ~ I(year - min(year)), data = rci_by_year_place) %>% summary()
+# Not stat sig
+
+# Pop area conc
+lm(rci ~ pop_area_conc, data = rci_by_year_place) %>% summary()
+# not stat sig
+
+# fixed effects for place
+lm(rci ~ place , data = rci_by_year_place) %>% 
+  broom::tidy() %>% 
+  mutate(term = str_replace(term, "place", "")) %>% 
+  mutate(term = reorder(term, estimate)) %>% 
+  mutate(lower = estimate - 2* std.error, upper = estimate + 2* std.error) %>% 
+  ggplot(., aes(y = term)) + 
+  geom_point(aes(x = estimate)) + 
+  geom_errorbarh(aes(x = estimate, xmin = lower, xmax = upper)) + 
+  geom_vline(aes(xintercept = 0)) + 
+  labs(x = "Estimate", y = "RCI on Place")
+
+lm(d ~ place, data = rci_by_year_place) %>% 
+  broom::tidy() %>% 
+  mutate(term = str_replace(term, "place", "")) %>% 
+  mutate(term = reorder(term, estimate)) %>% 
+  mutate(lower = estimate - 2* std.error, upper = estimate + 2* std.error) %>% 
+  ggplot(., aes(y = term)) + 
+  geom_point(aes(x = estimate)) + 
+  geom_errorbarh(aes(x = estimate, xmin = lower, xmax = upper)) + 
+  geom_vline(aes(xintercept = 0)) + 
+  labs(x = "Estimate", y = "D on Place")
+
+lm(pop_area_conc ~ place, data = rci_by_year_place) %>% 
+  broom::tidy() %>% 
+  mutate(term = str_replace(term, "place", "")) %>% 
+  mutate(term = reorder(term, estimate)) %>% 
+  mutate(lower = estimate - 2* std.error, upper = estimate + 2* std.error) %>% 
+  ggplot(., aes(y = term)) + 
+  geom_point(aes(x = estimate)) + 
+  geom_errorbarh(aes(x = estimate, xmin = lower, xmax = upper)) + 
+  geom_vline(aes(xintercept = 0)) + 
+  labs(x = "Estimate", y = "Spatial Concentration on Place")
+
+lm(pop_id_area_conc ~ place, data = rci_by_year_place) %>% 
+  broom::tidy() %>% 
+  mutate(term = str_replace(term, "place", "")) %>% 
+  mutate(term = reorder(term, estimate)) %>% 
+  mutate(lower = estimate - 2* std.error, upper = estimate + 2* std.error) %>% 
+  ggplot(., aes(y = term)) + 
+  geom_point(aes(x = estimate)) + 
+  geom_errorbarh(aes(x = estimate, xmin = lower, xmax = upper)) + 
+  geom_vline(aes(xintercept = 0)) + 
+  labs(x = "Estimate", y = "Spatial Concentration of poor on Place")
 
 
 # Want to arrange TTWA by population size in (say) 2010
