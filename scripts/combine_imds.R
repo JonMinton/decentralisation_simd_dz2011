@@ -143,6 +143,284 @@ imd_num %>%
 # No comparable data 
 
 
+
+# Approach to mapping onto 2011 lsoas using Paul Norman file --------------
+
+
+
+postcode_links <- read_csv("data/paul_norman_file/postcode_lookups/postcode01_to_lsoa11.csv")
+
+postcode_links %>% 
+  select(
+    persons = PERSONS, 
+    lsoa_2001 = LSOA_CODE, 
+    lsoa_2011 = LSOA11CD
+    ) %>% 
+  group_by(lsoa_2011) %>% 
+  mutate(lsoa_total_2011 = sum(persons)) %>% 
+  ungroup() %>% group_by(lsoa_2001) %>% 
+  mutate(lsoa_total_2001 = sum(persons)) %>% 
+  ungroup() %>% group_by(lsoa_2001, lsoa_2011) %>% 
+  mutate(share_2001_pop_in_2011 = sum(lsoa_total_2011) / sum(lsoa_total_2001)) %>% 
+  # ggplot(., aes(x = share_2001_pop_in_2011)) +
+  # scale_x_log10() + 
+  # geom_histogram()  
+  ungroup() %>% 
+  mutate(match_status = ifelse(
+    share_2001_pop_in_2011 == 1, "1_to_1",
+    ifelse(
+      share_2001_pop_in_2011 < 1, "n_to_1",
+      ifelse(
+        share_2001_pop_in_2011 > 1, "1_to_n",
+          "something is wrong"
+        )
+      )
+    )
+  ) -> postcodes_categorised
+  # xtabs(~ match_status, .)
+
+# For the 97% of values where there is a match,
+# Filter these in
+# Then establish lookup
+
+postcodes_categorised %>% 
+  filter(match_status == "1_to_1") %>% 
+  mutate(lsoas_match = lsoa_2001 == lsoa_2011) %>% 
+#  xtabs(~lsoas_match, .)
+# NOT ALL LSOAS match
+  # 99.8% of areas DO match
+# Let's explore those areas that do not 
+  # filter(lsoas_match == F) %>% 
+  # View()
+# For these non-matches, want to know the number of 
+# unique 2011 codes for each 2001 code 
+  # group_by(lsoa_2001) %>% 
+  # summarise(n_unique_2011 = length(unique(lsoa_2011))) %>% 
+  # xtabs(~ n_unique_2011, .)
+# All 2001 have a unique 2011 code 
+# We can then use this to form a 1_to_1 lookup, which will 
+# mostly have identical columns in from and to column
+  group_by(lsoa_2001) %>% 
+  summarise(lsoa_2011 = lsoa_2011[1]) -> simple_match_lsoa_lookup
+
+
+# The next simplest case will be where multiple lsoas in 2001 
+# are completely represented by a single lsoa in 2011
+
+postcodes_categorised %>% 
+  filter(match_status != "1_to_1") %>% 
+  group_by(lsoa_2001, lsoa_2011) %>% 
+  summarise(n = sum(persons)) %>% 
+  ungroup() %>% group_by(lsoa_2011) %>% 
+  mutate(n_t2 = sum(n)) %>% 
+  ungroup() %>% group_by(lsoa_2001) %>% 
+  mutate(n_t1 = sum(n)) %>% 
+  ungroup() %>% 
+  mutate(t2_bigger = n_t2 > n_t1) %>% 
+  # xtabs(~ t2_bigger, .)
+# Around 30% have t2 > t1
+  filter(t2_bigger) %>% 
+  group_by(lsoa_2011) %>% 
+  mutate(t1_to_t2_reweight = n_t1 / sum(n_t1)) %>% 
+  # mutate(num_t1s_in_t2 = length(unique(lsoa_2001))) %>% 
+  # mutate(sum_t1_to_t2_reweight = sum(t1_to_t2_reweight)) %>% 
+  # select(lsoa_2001, lsoa_2011, num_t1s_in_t2, t1_to_t2_reweight, sum_t1_to_t2_reweight) %>% 
+  # View()
+  filter(!is.na(lsoa_2001), !is.na(lsoa_2011), !is.na(t1_to_t2_reweight)) %>% 
+  ungroup() %>% 
+  select(lsoa_2001, lsoa_2011, t1_to_t2_reweight) -> reweight_from_lsoa_2001_to_lsoa_2011
+
+
+# What proportion of total lsoa_2011s have now been covered? 
+
+length(unique(reweight_from_lsoa_2001_to_lsoa_2011$lsoa_2011))
+#212
+length(unique(simple_match_lsoa_lookup$lsoa_2011))
+#33554
+
+length(unique(postcodes_categorised$lsoa_2011))
+#34707 
+
+# So around 97.3% covered 
+
+# What about cases where there is mixed apportioning? 
+
+postcodes_categorised %>% 
+  filter(match_status != "1_to_1") %>% 
+  group_by(lsoa_2001, lsoa_2011) %>% 
+  summarise(n = sum(persons)) %>% 
+  ungroup() %>% group_by(lsoa_2011) %>% 
+  mutate(n_t2 = sum(n)) %>% 
+  ungroup() %>% group_by(lsoa_2001) %>% 
+  mutate(n_t1 = sum(n)) %>% 
+  ungroup() %>% 
+  filter(!(lsoa_2011 %in% unique(reweight_from_lsoa_2001_to_lsoa_2011$lsoa_2011))) %>% 
+  # View()
+   xtabs(n ~ lsoa_2001 + lsoa_2011, .) %>% 
+  as.data.frame() %>% tbl_df %>% 
+  filter(Freq != 0) %>% 
+  rename(n = Freq) %>% 
+  arrange(lsoa_2011) %>% 
+#  View()
+  group_by(lsoa_2001) %>% 
+  mutate(n_t1 = sum(n)) %>% 
+  mutate(prop_t1_in_t2 = n / n_t1) %>% 
+  # View()
+  rename(weight_t1_to_t2 = prop_t1_in_t2) %>% 
+  select(lsoa_2001, lsoa_2011, weight_t1_to_t2) -> mixed_reweight_from_lsoa_2001_to_lsoa_2011
+
+
+
+# Now to do some matching and reweighting 
+
+imd_2004 %>% 
+  bind_rows(imd_2007) %>% 
+  bind_rows(imd_2010) %>% 
+  left_join(simple_match_lsoa_lookup, by = c("lsoa" = "lsoa_2001")) %>% 
+  filter(!is.na(lsoa_2011)) %>% 
+  select(lsoa_2011, year, pop_id, pop_total) -> imd_simple_matches
+
+imd_2004 %>% 
+  bind_rows(imd_2007) %>% 
+  bind_rows(imd_2010) %>% 
+  left_join(simple_match_lsoa_lookup, by = c("lsoa" = "lsoa_2001")) %>% 
+  filter(is.na(lsoa_2011)) %>% 
+  select(lsoa_2001 = lsoa, year, pop_id, pop_total) -> imd_harder_matches
+
+imd_harder_matches %>% 
+  left_join(reweight_from_lsoa_2001_to_lsoa_2011) %>% 
+  filter(!is.na(lsoa_2011)) %>% 
+  mutate(pop_id_rwt = pop_id * t1_to_t2_reweight) %>% 
+  mutate(pop_total_rwt = pop_total * t1_to_t2_reweight) %>% 
+  # group_by(year) %>% 
+  # summarise(pop_total = sum(pop_total))
+#   # A tibble: 3 × 2
+#   year pop_total
+# <dbl>     <dbl>
+#   1  2004    574700
+# 2  2007    577620
+# 3  2010    566478
+  group_by(year, lsoa_2011) %>% 
+  summarise(
+    pop_id = sum(pop_id_rwt),
+    pop_total = sum(pop_total_rwt)
+            ) %>% 
+  # group_by(year) %>% 
+  # summarise(pop_total = sum(pop_total))
+# # A tibble: 3 × 2
+# year pop_total
+# <dbl>     <dbl>
+#   1  2004  287989.5
+# 2  2007  289143.9
+# 3  2010  284380.9
+# Around half the size - is this due to an error
+# or a genuine resizing of lsoas covered?
+  ungroup() %>% 
+  select(lsoa_2011, year, pop_id, pop_total) -> reweighted_harder_matches_1
+
+
+# Now the other chunk
+imd_harder_matches %>% 
+  left_join(mixed_reweight_from_lsoa_2001_to_lsoa_2011) %>% 
+  filter(!is.na(lsoa_2011)) %>% 
+  mutate(pop_id_rwt = pop_id * weight_t1_to_t2) %>% 
+  mutate(pop_total_rwt = pop_total * weight_t1_to_t2) %>% 
+  # group_by(year) %>%
+  # summarise(pop_total = sum(pop_total))
+# # A tibble: 3 × 2
+# year pop_total
+# <dbl>     <dbl>
+#   1  2004   1488300
+# 2  2007   2043894
+# 3  2010   2587116
+  group_by(year, lsoa_2011) %>% 
+  summarise(
+    pop_id = sum(pop_id_rwt),
+    pop_total = sum(pop_total_rwt)
+  ) %>% 
+  # group_by(year) %>%
+  # summarise(pop_total = sum(pop_total))
+# # A tibble: 3 × 2
+# year pop_total
+# <dbl>     <dbl>
+#   1  2004    708330
+# 2  2007    917817
+# 3  2010   1119500
+  # Again, around half 1/3rd the size - is this due to an error
+  # or a genuine resizing of lsoas covered?
+  ungroup() %>% 
+  select(lsoa_2011, year, pop_id, pop_total) -> reweighted_harder_matches_2
+
+imd_simple_matches %>% 
+  bind_rows(reweighted_harder_matches_1) %>% 
+  bind_rows(reweighted_harder_matches_2) -> all_matched_and_reweighted_on_lsoa_2011
+
+# Are all lsoas in each year unique?
+all_matched_and_reweighted_on_lsoa_2011 %>%
+  # group_by(year) %>% 
+  # summarise(
+  #   nunique = length(unique(lsoa_2011)), 
+  #           nrow = length(lsoa_2011)
+  #   )
+# The number of LSOAs is equal  to the number of unique LSOAs in 2004 and 2007
+# But for 2010 there are 
+# 32574 unique IDs and 32680 rows 
+# I will reaggregate for this reason
+  group_by(year, lsoa_2011) %>% 
+  summarise(
+    pop_id = sum(pop_id),
+    pop_total = sum(pop_total)
+  ) %>% ungroup() -> all_matched_and_reweighted_on_2011_reaggregated
+# From 98272 rows to 98166 rows
+
+# Compare population totals in the original and final(?) reaggregated
+
+
+imd_2004 %>%
+  bind_rows(imd_2007) %>%
+  bind_rows(imd_2010) %>%
+  group_by(year) %>%
+  summarise(
+    pop_id = sum(pop_id),
+    pop_total = sum(pop_total)
+  ) %>% 
+  mutate(source = "original") -> tmp1
+# # A tibble: 3 × 3
+# year  pop_id pop_total
+# <dbl>   <dbl>     <dbl>
+#   1  2004 6837516  49345520
+# 2  2007 7833920  50427759
+# 3  2010 7481830  51238293
+
+
+all_matched_and_reweighted_on_2011_reaggregated %>% 
+  group_by(year) %>% 
+  summarise(
+    pop_id = sum(pop_id),
+    pop_total = sum(pop_total)
+  ) %>% 
+  mutate(source = "modified") -> tmp2
+
+bind_rows(tmp1, tmp2) %>% 
+  select(-pop_total) %>% 
+  spread(source, pop_id) %>% 
+  mutate(
+    dif_id = modified / original, 
+    prop_dif_id = dif_id / original)
+# Differences are under 1% 
+
+bind_rows(tmp1, tmp2) %>% 
+  select(-pop_id) %>% 
+  spread(source, pop_total) %>% 
+  mutate(
+    dif_total = modified / original, 
+    prop_dif_total = dif_total / original)
+# Differences are under 0.5%
+
+
+
+
+
 # Data Stitching code from Gavin ------------------------------------------
 # 2011 to 2001
 
@@ -151,13 +429,14 @@ changes.boundary <- read_csv("data/england_lookup/LSOA01_LSOA11_LAD11_EW_LU.csv"
   select(LSOA01CD,LSOA11CD,CHGIND)
 
 
-changes.boundary.1 <- changes.boundary %>% left_join(imd_2015,by = c("LSOA11CD" = "lsoa")) 
+changes.boundary.1 <- changes.boundary %>% 
+  left_join(imd_2015,by = c("LSOA11CD" = "lsoa")) 
 
 
 ### we use LSOA boundary in 2001 as baseline geographical units
 # case 1; split--one lsoa was split into two or more lsoa in 2011. in this case, aggregate the COB data in 2011 
 # based on 2001 lsoas
-changes.boundary.1 %>% filter(CHGIND == "S")
+#changes.boundary.1 %>% filter(CHGIND == "S")
 #grepl("*.2011",names(changes.boundary.2))
 
 data.split <- changes.boundary.1 %>% filter(CHGIND == "S") %>%
@@ -171,7 +450,9 @@ s.ind <- changes.boundary.1$CHGIND =="S"
 match.ind <- match(changes.boundary.1$LSOA01CD[s.ind],data.split$LSOA01CD)
 changes.boundary.1[s.ind,c("pop_id","pop_total")] <- data.split[match.ind,2:3]
 
-# case 2: two or more LSOAs were merged into a single LSOA in 2011. in this case we need aggregate the 2001 LSOAs accordingly.
+
+# case 2: two or more LSOAs were merged into a single LSOA in 2011. 
+# in this case we need aggregate the 2001 LSOAs accordingly.
 changes.boundary.1 %>% filter(CHGIND == "M")
 
 data.merge <- changes.boundary.1 %>% filter(CHGIND == "M") %>%
@@ -187,14 +468,12 @@ changes.boundary.1[m.ind,names(data.merge)[-1]] <- data.merge[match.ind,2:3]
 
 
 # select unique ids of LSOAs in 2001
-imd_2015_on2001 <- changes.boundary.1[!duplicated(changes.boundary.1$LSOA01CD),] %>% data.frame
+imd_2015_on2001 <- changes.boundary.1[!duplicated(changes.boundary.1$LSOA01CD),] %>% tbl_df
+
 
 # drop complex boundary changes, they only account for a very small proportion of the data
 #COB.data <- COB.data[!COB.data$CHGIND == "X",]
-COB.data %>% tbl_df() %>% filter(ttwa %in% c("London","Manchester","Sheffield & Rotherham")) %>%
-  filter(CHGIND == "X") %>%
-  group_by(ttwa) %>%
-  summarise(num=length(ttwa))
+
 
 imd_2015_on2001 <- imd_2015_on2001[!imd_2015_on2001$CHGIND == "X",] %>% tbl_df
 
