@@ -405,16 +405,14 @@ bind_rows(tmp1, tmp2) %>%
   select(-pop_total) %>% 
   spread(source, pop_id) %>% 
   mutate(
-    dif_id = modified / original, 
-    prop_dif_id = dif_id / original)
+    dif_id = modified / original)
 # Differences are under 1% 
 
 bind_rows(tmp1, tmp2) %>% 
   select(-pop_id) %>% 
   spread(source, pop_total) %>% 
   mutate(
-    dif_total = modified / original, 
-    prop_dif_total = dif_total / original)
+    dif_total = modified / original)
 # Differences are under 0.5%
 
 all_matched_and_reweighted_on_2011_reaggregated %>% 
