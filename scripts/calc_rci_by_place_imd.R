@@ -51,10 +51,17 @@ calc_gini <- function(DATA){
     )
   
   fn <- approxfun(df$sx, df$sy)
-  auc <- integrate(fn, 0, 1)$value
-  print(auc)
-  out <- auc - 0.5
-  out
+  int_output <- integrate(fn, 0, 1, stop.on.error = F)
+  if (int_output$message != "OK") {
+    print("Error detected!")
+    print(int_output$message)
+    return(NA)
+  } else {
+    auc <- int_output$value
+    print(auc)
+    out <- auc - 0.5
+    return(out)
+    }
 }
 
 # imd
@@ -166,7 +173,9 @@ lm(d ~ place, data = rci_by_year_place) %>%
   geom_vline(aes(xintercept = 0)) + 
   labs(x = "Estimate", y = "D on Place")
 
-lm(pop_area_conc ~ place, data = rci_by_year_place) %>% 
+rci_by_year_place %>% 
+  filter(!is.na(pop_area_conc)) %>% 
+  lm(pop_area_conc ~ place, data = .) %>% 
   broom::tidy() %>% 
   mutate(term = str_replace(term, "place", "")) %>% 
   mutate(term = reorder(term, estimate)) %>% 
@@ -177,16 +186,6 @@ lm(pop_area_conc ~ place, data = rci_by_year_place) %>%
   geom_vline(aes(xintercept = 0)) + 
   labs(x = "Estimate", y = "Spatial Concentration on Place")
 
-# lm(pop_id_area_conc ~ place, data = rci_by_year_place) %>% 
-#   broom::tidy() %>% 
-#   mutate(term = str_replace(term, "place", "")) %>% 
-#   mutate(term = reorder(term, estimate)) %>% 
-#   mutate(lower = estimate - 2* std.error, upper = estimate + 2* std.error) %>% 
-#   ggplot(., aes(y = term)) + 
-#   geom_point(aes(x = estimate)) + 
-#   geom_errorbarh(aes(x = estimate, xmin = lower, xmax = upper)) + 
-#   geom_vline(aes(xintercept = 0)) + 
-#   labs(x = "Estimate", y = "Spatial Concentration of poor on Place")
 
 
 # Want to arrange TTWA by population size in (say) 2010

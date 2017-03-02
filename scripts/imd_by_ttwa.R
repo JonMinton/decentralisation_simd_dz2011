@@ -10,7 +10,7 @@ pacman::p_load(
   purrr,
   rgeos,
   ggplot2,
-  tmap
+  tmap, tmaptools
 )
 
 
@@ -28,7 +28,7 @@ lsoa_2011 <- read_shape(file = "shapefiles/Lower_layer_super_output_areas_(E+W)_
 
 
 # imd
-dta <- read_csv("data/imd/imd_id_tidied.csv", col_types = "icdd")
+dta <- read_csv("data/imd/imd_id_lsoa2011_tidied.csv")
 
 
 # lookup
