@@ -136,10 +136,10 @@ lsoa_area <- data_frame(
   area = gArea(lsoa_2011, byid = T)
 )
 
-dz_area <- data_frame(
-  lsoa = as.character(dz_2011@data$DataZone),
-  area = gArea(dz_2011, byid = T)
-)
+# dz_area <- data_frame(
+#   lsoa = as.character(dz_2011@data$DataZone),
+#   area = gArea(dz_2011, byid = T)
+# )
 
 
 # Create a new function
@@ -158,7 +158,6 @@ calc_distance_to_centres <- function(shp, code_centre){
     mutate(distance_to_centre = ((x - x[centre])^2 + (y - y[centre])^2)^0.5) -> output
   
   num_centres <- output$centre %>% sum()
-  
   if(num_centres == 0) {break("No centroid found")} 
   if(num_centres > 1) {break("Multiple centres found")}
   output
@@ -182,14 +181,15 @@ fn <- function(val, nm){
   lsoa_by_dist_to_centres
 
 lsoas_of_interest  <- unique(lsoa_selected_ttwa$lsoa)
-# 
+
+#  Code adjusted to filter by lsoa_to_ttwa
 lsoa_by_dist_to_centres %>%
   filter(lsoa %in% lsoas_of_interest) %>%
-  group_by(lsoa) %>%
-  filter(distance == min(distance)) %>%
-  ungroup() %>%
+  left_join(lsoa_to_ttwa, by = c("lsoa" = "LSOA11CD")) %>% 
+  filter(TTWA11NM == place) %>% 
   arrange(lsoa) %>%
-  inner_join(lsoa_area) -> lsoa_by_dist_to_centres
+  inner_join(lsoa_area) %>% 
+  select(lsoa, place, distance, area) -> lsoa_by_dist_to_centres
 
 write_csv(lsoa_by_dist_to_centres, "data/lsoa_2011_by_dist_to_centres.csv")
 
