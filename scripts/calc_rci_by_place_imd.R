@@ -78,6 +78,48 @@ dta_scot <- read_csv("data/simd/simd_combined_on_2011.csv")
 #order
 
 
+# Table of % income deprived in each TTWA and each year  ------------------
+
+dta %>% 
+  inner_join(dist_to_centre) %>%
+  mutate(pdens = pop_total / area) %>% 
+  group_by(place, year) %>%
+  summarise(pop_id = sum(pop_id), pop_total = sum(pop_total)) %>% 
+  mutate(prop_id = round(pop_id / pop_total, 3)) %>% 
+  select(place, year, prop_id) %>% 
+  mutate(year = fct_recode(
+    factor(year), 
+    "2006-2007" = "2007", 
+    "2009-2010" = "2010",
+    "2015-2016" = "2015"
+    )) %>% 
+  spread(year, prop_id) %>% 
+  ungroup() %>% 
+  arrange(desc(`2004`)) -> prop_id_eng
+
+dta_scot %>% 
+  inner_join(dist_to_centre_scot, by = c("dz_2011" = "dz")) %>%
+  mutate(pdens = pop_total / area) %>%
+  select(dz_2011, place, year, pop_id = pop_incomedeprived, pop_total, distance, pdens, area) %>% 
+  group_by(place, year) %>% 
+  summarise(pop_id = sum(pop_id), pop_total = sum(pop_total)) %>% 
+  mutate(prop_id = round(pop_id / pop_total, 3)) %>% 
+  select(place, year, prop_id) %>% 
+  mutate(year = fct_recode(
+    factor(year), 
+    "2006-2007" = "2006", 
+    "2009-2010" = "2009",
+    "2015-2016" = "2016",
+    "2012" = "2012"
+  )) %>%
+  filter(year != "2012") %>% 
+  spread(year, prop_id) %>% 
+  ungroup() %>% 
+  arrange(desc(`2004`)) -> prop_id_scot
+
+prop_id_engscot <- bind_rows(prop_id_scot, prop_id_eng) %>% 
+  arrange(desc(`2004`))
+
 
 
 dta %>% 
@@ -212,7 +254,7 @@ rm(tmp1, tmp2)
 
 
 
-# pop_area_conc by year and place 
+# Population concentration (GINI) by place and year  ----------------------
 
 rci_by_year_place %>% 
   mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
@@ -232,6 +274,8 @@ ggsave("figures/TTWA/population_concentration_scores.png", height = 30, width = 
 
 
 
+# Figure: RCI by year and TTWA --------------------------------------------
+
 rci_by_year_place %>% 
   mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
   ggplot(., aes(x = year, y = rci)) + 
@@ -241,6 +285,8 @@ rci_by_year_place %>%
   labs(title = "RCI by year and TTWA", subtitle = "TTWAs arranged by size", x = "Year", y = "Relative Centralisation Index (RCI)")
 ggsave("figures/TTWA/rci_by_year_ttwa.png", height= 25, width = 25, units = "cm", dpi = 300)
 
+
+# Figure: RDI by year and TTWA --------------------------------------------
 
 rci_by_year_place %>% 
   mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
@@ -252,7 +298,10 @@ rci_by_year_place %>%
 ggsave("figures/TTWA/rdi_by_year_ttwa.png", height= 25, width = 25, units = "cm", dpi = 300)
 
 
-# RDI and RCI on same plot 
+
+# Figure: RCI and RDI by year and TTWA (both on same plot) ----------------
+
+
 rci_by_year_place %>% 
   mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
   select(-d) %>% 
@@ -268,7 +317,7 @@ ggsave("figures/TTWA/rdi_rci_by_year_ttwa.png", height= 25, width = 25, units = 
 
 
 
-# D - faceted
+# Figure: D by year and TTWA ----------------------------------------------
 
 rci_by_year_place %>% 
   mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
@@ -283,7 +332,8 @@ ggsave("figures/TTWA/d_by_year_ttwa.png", height= 25, width = 25, units = "cm", 
 
 
 
-# ratio, faceted
+# Figure: Ratio of |RCI| / |RDI| faceted by year and TTWA -----------------
+
 rci_by_year_place %>% 
   mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
   mutate(rtio = abs(rci) / abs(rdi)) %>% 
@@ -296,6 +346,22 @@ rci_by_year_place %>%
   geom_hline(aes(yintercept = 1), lty = "dashed") 
 ggsave("figures/TTWA/ratio_abs_by_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
 
+
+# Figure: Difference between RCI and RDI by year and TTWA -----------------
+
+
+rci_by_year_place %>% 
+  mutate(TTWA = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  mutate(difference = rci -  rdi) %>% 
+  ggplot(., aes(x = year, y = difference)) + 
+  geom_line() + geom_point()  +
+  labs(x = "Year", y = "Difference between RCI and RDI by year and TTWA", title = "RCI minus RDI", 
+       subtitle = "Difference between values"
+  ) + 
+  scale_y_continuous(breaks = seq(-0.25, 0.25, 0.05), limits = c(-0.25, 0.25)) + 
+  facet_wrap(~TTWA) +
+  geom_hline(aes(yintercept = 0), lty = "dashed") 
+ggsave("figures/TTWA/rci_less_rdi_by_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
 
 # Share of poor, by decile of density or decile of distance ---------------
 
@@ -348,6 +414,61 @@ ypd %>%
 ggsave("figures/TTWA/id_share_by_dist_decile_and_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
 
 
+# Share of non-poor, by decile of density or decile of distance ---------------
+
+dta_scot %>% 
+  inner_join(dist_to_centre_scot, by = c("dz_2011" = "dz")) %>% 
+  select(year, lsoa = dz_2011, pop_id = pop_incomedeprived, pop_total, place, distance, area) -> tmp1
+
+dta %>% 
+  inner_join(dist_to_centre) -> tmp2
+
+ypd <- bind_rows(tmp1, tmp2) %>% filter(place != "Cardiff")
+rm(tmp1, tmp2)
+
+ypd %>% 
+  mutate(pop_nonid = pop_total - pop_id) %>% 
+  mutate(
+    year = factor(year)
+  ) %>% 
+  mutate(
+    Year = fct_recode(
+      year, 
+      `2004` = "2004",
+      `2006-07` = "2006",
+      `2006-07` = "2007",
+      `2009-10` = "2009",
+      `2009-10` = "2010",
+      `2012`      = "2012",    
+      `2015-16` = "2015",
+      `2015-16` = "2016"
+    )
+  ) %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  group_by(Year, place) %>% 
+  mutate(
+    dist_decile = ntile(distance, 10)
+  ) %>% 
+  group_by(Year, place, dist_decile) %>% 
+  summarise(pop_nonid = sum(pop_nonid)) %>% 
+  group_by(Year, place) %>% 
+  mutate(share_nonid = pop_nonid / sum(pop_nonid)) %>% 
+  ggplot(., aes(x = factor(dist_decile), y = share_nonid, group = Year)) + 
+  geom_point(aes(shape = Year)) + geom_line(aes(colour = Year)) + 
+  facet_wrap(~place) + 
+  labs(
+    x = "Decile of distance from centre in TTWA",
+    y = "Share of TTWA's non-income-deprived population", 
+    title = "Share of TTWA non-income-deprivation by decile of distance from centre",
+    subtitle = "TTWAs arranged by size",
+    caption = "Scottish and English IMDs are for different years"
+  ) 
+ggsave("figures/TTWA/nonid_share_by_dist_decile_and_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
+
+
+
+
+# share of id by decile of density ----------------------------------------
 
 
 ypd %>% 
@@ -388,6 +509,51 @@ ypd %>%
     caption = "Scottish and English IMDs are for different years"
   ) 
 ggsave("figures/TTWA/id_share_by_dens_decile_and_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
+
+
+# share of non ID by decile of density  -----------------------------------
+
+
+ypd %>% 
+  mutate(pop_nonid = pop_total - pop_id) %>% 
+  mutate(
+    year = factor(year)
+  ) %>% 
+  mutate(
+    Year = fct_recode(
+      year, 
+      `2004` = "2004",
+      `2006-07` = "2006",
+      `2006-07` = "2007",
+      `2009-10` = "2009",
+      `2009-10` = "2010",
+      `2012`      = "2012",    
+      `2015-16` = "2015",
+      `2015-16` = "2016"
+    )
+  ) %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  group_by(Year, place) %>% 
+  mutate(
+    density = pop_total / area,
+    density_decile = 11 - ntile(density, 10)
+  ) %>% 
+  group_by(Year, place, density_decile) %>% 
+  summarise(pop_nonid = sum(pop_nonid)) %>% 
+  group_by(Year, place) %>% 
+  mutate(share_nonid = pop_nonid / sum(pop_nonid)) %>% 
+  ggplot(., aes(x = factor(density_decile), y = share_nonid, group = Year)) + 
+  geom_point(aes(shape = Year)) + geom_line(aes(colour = Year)) + 
+  facet_wrap(~place) + 
+  labs(
+    x = "Decile of density in TTWA (1 = most dense)",
+    y = "Share of TTWA's non-income-deprived population", 
+    title = "Share of TTWA non-income-deprivation by decile of density",
+    subtitle = "TTWAs arranged by size",
+    caption = "Scottish and English IMDs are for different years"
+  ) 
+ggsave("figures/TTWA/nonid_share_by_dens_decile_and_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
+
 
 
 # Density and distance on a single plot 
