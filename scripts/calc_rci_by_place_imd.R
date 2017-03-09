@@ -170,7 +170,7 @@ rci_by_year_place <- bind_rows(
   rci_by_year_place_scot
 ) 
   
-
+write.csv(x = rci_by_year_place, "clipboard")
 # Regression summary? 
 # Predictors of RCI 
 
