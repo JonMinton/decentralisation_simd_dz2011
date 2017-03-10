@@ -415,6 +415,124 @@ ypd %>%
 ggsave("figures/TTWA/id_share_by_dist_decile_and_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
 
 
+# Figure: change in share of poor by decile of distance, from last --------
+
+dta_scot %>% 
+  inner_join(dist_to_centre_scot, by = c("dz_2011" = "dz")) %>% 
+  select(year, lsoa = dz_2011, pop_id = pop_incomedeprived, pop_total, place, distance, area) -> tmp1
+
+dta %>% 
+  inner_join(dist_to_centre) -> tmp2
+
+ypd <- bind_rows(tmp1, tmp2) %>% filter(place != "Cardiff")
+rm(tmp1, tmp2)
+
+ypd %>% 
+  mutate(
+    year = factor(year)
+  ) %>% 
+  mutate(
+    Year = fct_recode(
+      year, 
+      `2004` = "2004",
+      `2006-07` = "2006",
+      `2006-07` = "2007",
+      `2009-10` = "2009",
+      `2009-10` = "2010",
+      `2012`      = "2012",    
+      `2015-16` = "2015",
+      `2015-16` = "2016"
+    )
+  ) %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  group_by(Year, place) %>% 
+  mutate(
+    dist_decile = ntile(distance, 10)
+  ) %>% 
+  group_by(Year, place, dist_decile) %>% 
+  summarise(pop_id = sum(pop_id)) %>% 
+  group_by(Year, place) %>% 
+  mutate(share_id = pop_id / sum(pop_id)) %>%
+  filter(Year %in% c("2004", "2015-16")) %>% 
+  select(-pop_id) %>% 
+  spread(Year, share_id) %>% 
+  mutate(change_share = `2015-16` - `2004`) %>% 
+  select(place, dist_decile, change_share) %>% 
+  ggplot(., aes(x = dist_decile, y = change_share)) + 
+  geom_point() + geom_line() + 
+  facet_wrap(~place) + 
+  labs(
+    x = "Decile of distance from centre in TTWA",
+    y = "Change in share of TTWA's income deprived population", 
+    title = "Change in share of TTWA income deprivation by decile of distance from centre",
+    subtitle = "TTWAs arranged by size",
+    caption = "Scottish and English IMDs are for different years. Change is from 2004 to 2015-16"
+  ) +
+  geom_hline(aes(yintercept = 0), linetype = "dashed") + 
+  scale_x_continuous(breaks = 1:10)
+ggsave("figures/TTWA/change_id_share_by_dist_decile_and_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
+
+
+
+# Figure change in share of non-poor by decile of distance ----------------
+
+dta_scot %>% 
+  inner_join(dist_to_centre_scot, by = c("dz_2011" = "dz")) %>% 
+  select(year, lsoa = dz_2011, pop_id = pop_incomedeprived, pop_total, place, distance, area) -> tmp1
+
+dta %>% 
+  inner_join(dist_to_centre) -> tmp2
+
+ypd <- bind_rows(tmp1, tmp2) %>% filter(place != "Cardiff")
+rm(tmp1, tmp2)
+
+ypd %>% 
+  mutate(pop_nonid = pop_total - pop_id) %>% 
+  mutate(
+    year = factor(year)
+  ) %>% 
+  mutate(
+    Year = fct_recode(
+      year, 
+      `2004` = "2004",
+      `2006-07` = "2006",
+      `2006-07` = "2007",
+      `2009-10` = "2009",
+      `2009-10` = "2010",
+      `2012`      = "2012",    
+      `2015-16` = "2015",
+      `2015-16` = "2016"
+    )
+  ) %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  group_by(Year, place) %>% 
+  mutate(
+    dist_decile = ntile(distance, 10)
+  ) %>% 
+  group_by(Year, place, dist_decile) %>% 
+  summarise(pop_nonid = sum(pop_nonid)) %>% 
+  group_by(Year, place) %>% 
+  mutate(share_nonid = pop_nonid / sum(pop_nonid)) %>%
+  filter(Year %in% c("2004", "2015-16")) %>% 
+  select(-pop_nonid) %>% 
+  spread(Year, share_nonid) %>% 
+  mutate(change_share = `2015-16` - `2004`) %>% 
+  select(place, dist_decile, change_share) %>% 
+  ggplot(., aes(x = dist_decile, y = change_share)) + 
+  geom_point() + geom_line() + 
+  facet_wrap(~place) + 
+  labs(
+    x = "Decile of distance from centre in TTWA",
+    y = "Change in share of TTWA's non-income-deprived population", 
+    title = "Change in share of TTWA non-income-deprivation by decile of distance from centre",
+    subtitle = "TTWAs arranged by size",
+    caption = "Scottish and English IMDs are for different years. Change is from 2004 to 2015-16"
+  ) +
+  geom_hline(aes(yintercept = 0), linetype = "dashed") + 
+  scale_x_continuous(breaks = 1:10)
+ggsave("figures/TTWA/change_nonid_share_by_dist_decile_and_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
+
+
 # Share of non-poor, by decile of density or decile of distance ---------------
 
 dta_scot %>% 
@@ -469,7 +587,7 @@ ggsave("figures/TTWA/nonid_share_by_dist_decile_and_ttwa.png", height = 25, widt
 
 
 
-# share of id by decile of density ----------------------------------------
+# Figure: share of id by decile of density ----------------------------------------
 
 
 ypd %>% 
@@ -510,6 +628,108 @@ ypd %>%
     caption = "Scottish and English IMDs are for different years"
   ) 
 ggsave("figures/TTWA/id_share_by_dens_decile_and_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
+
+# Figure: change in share of id by decile of density ----------------------------------------
+
+
+ypd %>% 
+  mutate(
+    year = factor(year)
+  ) %>% 
+  mutate(
+    Year = fct_recode(
+      year, 
+      `2004` = "2004",
+      `2006-07` = "2006",
+      `2006-07` = "2007",
+      `2009-10` = "2009",
+      `2009-10` = "2010",
+      `2012`      = "2012",    
+      `2015-16` = "2015",
+      `2015-16` = "2016"
+    )
+  ) %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  group_by(Year, place) %>% 
+  mutate(
+    density = pop_total / area,
+    density_decile = 11 - ntile(density, 10)
+  ) %>% 
+  group_by(Year, place, density_decile) %>% 
+  summarise(pop_id = sum(pop_id)) %>% 
+  group_by(Year, place) %>% 
+  mutate(share_id = pop_id / sum(pop_id)) %>%
+  filter(Year %in% c("2004", "2015-16")) %>% 
+  select(Year, place, density_decile, share_id) %>% 
+  spread(Year, share_id) %>% 
+  mutate(change_share_id = `2015-16` - `2004`) %>% 
+  select(place, density_decile, change_share_id) %>% 
+  ggplot(., aes(x = density_decile, y = change_share_id)) + 
+  geom_point() + geom_line() + 
+  facet_wrap(~place) + 
+  labs(
+    x = "Decile of density in TTWA (1 = most dense)",
+    y = "Change in share of TTWA's income deprived population", 
+    title = "Change in share of TTWA income deprivation by decile of density",
+    subtitle = "TTWAs arranged by size",
+    caption = "Scottish and English IMDs are for different years. Change is between 2004 and 2015-16"
+  ) +
+  scale_x_continuous(breaks = 1:10) + 
+  geom_hline(aes(yintercept = 0), linetype = "dashed")
+ggsave("figures/TTWA/change_id_share_by_dens_decile_and_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
+
+
+
+# Figure: change in share of non-id by decile of density ----------------------------------------
+
+
+ypd %>% 
+  mutate(pop_nonid = pop_total - pop_id) %>% 
+  mutate(
+    year = factor(year)
+  ) %>%
+  mutate(
+    Year = fct_recode(
+      year, 
+      `2004` = "2004",
+      `2006-07` = "2006",
+      `2006-07` = "2007",
+      `2009-10` = "2009",
+      `2009-10` = "2010",
+      `2012`      = "2012",    
+      `2015-16` = "2015",
+      `2015-16` = "2016"
+    )
+  ) %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  group_by(Year, place) %>% 
+  mutate(
+    density = pop_total / area,
+    density_decile = 11 - ntile(density, 10)
+  ) %>% 
+  group_by(Year, place, density_decile) %>% 
+  summarise(pop_nonid = sum(pop_nonid)) %>% 
+  group_by(Year, place) %>% 
+  mutate(share_nonid = pop_nonid / sum(pop_nonid)) %>%
+  filter(Year %in% c("2004", "2015-16")) %>% 
+  select(Year, place, density_decile, share_nonid) %>% 
+  spread(Year, share_nonid) %>% 
+  mutate(change_share_nonid = `2015-16` - `2004`) %>% 
+  select(place, density_decile, change_share_nonid) %>% 
+  ggplot(., aes(x = density_decile, y = change_share_nonid)) + 
+  geom_point() + geom_line() + 
+  facet_wrap(~place) + 
+  labs(
+    x = "Decile of density in TTWA (1 = most dense)",
+    y = "Change in share of TTWA's non-income-deprived population", 
+    title = "Change in share of TTWA non-income-deprivation by decile of density",
+    subtitle = "TTWAs arranged by size",
+    caption = "Scottish and English IMDs are for different years. Change is between 2004 and 2015-16"
+  ) +
+  scale_x_continuous(breaks = 1:10) + 
+  geom_hline(aes(yintercept = 0), linetype = "dashed")
+ggsave("figures/TTWA/change_nonid_share_by_dens_decile_and_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
+
 
 
 # share of non ID by decile of density  -----------------------------------
@@ -585,6 +805,9 @@ ypd %>%
   group_by(Year, place) %>% 
   mutate(share_id_dens = pop_id / sum(pop_id)) %>% 
   select(Year, place, decile, share_id_dens) -> tmp1
+
+# Figure: Density and distance in a single plot ---------------------------
+
 
 ypd %>% 
   mutate(
