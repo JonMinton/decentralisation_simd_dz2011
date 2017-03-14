@@ -383,7 +383,7 @@ write_csv(dz_by_dist_to_centres, "data/dz_2011_by_dist_to_centres.csv")
 # 
 # 
 # 
-# # Shapefile for 2011
+# # Shapefile for 2001
 dz_2001 <- read_shape(file = "shapefiles/scotland_2001_datazones/scotland_dz_2001.shp")
 
 
@@ -397,6 +397,19 @@ dta %>%
   select(dz_2001 = datazone, year, pop_id = pop_incomedeprived, pop_total = pop_total) ->
   dta
 
+
+# NOTE: 
+# There are 70 dzs with missing values for id_counts in 2004 (1.1%)
+# And 17 dzs with missing values for id counts in 2006 (0.3%)
+# These were missing in the original SIMD records 
+# These areas tend to have very low SIMD scores - low deprivation
+# It may well be that these counts were suppressed to prevent disclosure
+
+# OPTION : 
+# The proportion income deprived is strongly linearly correlated with 
+# the SIMD score. 
+# It would therefore be possible to impute the pop_ids in 2004 and 2007 
+# using a regression of SIMD score with prop_id
 
 # lookup
 dz_to_ttwa <- read_csv("data/lsoa_2001_ttwa_2001/LSOA01_TTWA01_UK_LU.csv")
