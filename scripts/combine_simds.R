@@ -59,6 +59,25 @@ simd_2004 %>%
   mutate(year = 2004) %>% 
   select(datazone, year, everything()) -> simd_2004_simple
 
+# There are 70 values missing for id_pop
+
+# These can be imputed using a regression 
+mod <- simd_2004_simple %>% 
+  mutate(prop_id = pop_incomedeprived/pop_total) %>% 
+  lm(prop_id ~ simd_score, data = .)
+  
+simd_2004_simple %>% 
+  modelr::add_predictions(mod) %>% 
+  mutate(pred_popid = pred * pop_total) %>% 
+#  ggplot(aes(y = pred_popid, x = pop_incomedeprived)) + geom_point()
+  mutate(pop_incomedeprived = ifelse(is.na(pop_incomedeprived), pred_popid, pop_incomedeprived)) %>% 
+  select(
+    datazone, year, pop_total, pop_workingage, pop_incomedeprived, simd_score, simd_rank
+  ) -> simd_2004_simple
+
+rm(mod)
+
+
 simd_2006 %>% 
   select(
     datazone = `Data Zone`,
@@ -70,6 +89,22 @@ simd_2006 %>%
   ) %>% 
   mutate(year = 2006) %>% 
   select(datazone, year, everything()) -> simd_2006_simple
+
+# Again, there are a small proportion of missing values, 
+# and again, they can be imputed 
+
+mod <- simd_2006_simple %>% 
+  mutate(prop_id = pop_incomedeprived/pop_total) %>% 
+  lm(prop_id ~ simd_score, data = .)
+
+simd_2006_simple %>% 
+  modelr::add_predictions(mod) %>% 
+  mutate(pred_popid = pred * pop_total) %>% 
+#    ggplot(aes(y = pred_popid, x = pop_incomedeprived)) + geom_point()
+  mutate(pop_incomedeprived = ifelse(is.na(pop_incomedeprived), pred_popid, pop_incomedeprived)) %>% 
+  select(
+    datazone, year, pop_total, pop_workingage, pop_incomedeprived, simd_score, simd_rank
+  ) -> simd_2006_simple
 
 simd_2009 %>% 
   select(

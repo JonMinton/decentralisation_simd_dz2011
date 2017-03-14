@@ -22,15 +22,24 @@ lkup  %>%
   left_join(simd_older_combined, by = c("dz_2001" = "datazone"))  %>% 
   dplyr::select(-simd_rank)  %>%  # Not meaningful to reweight rank
   group_by(dz_2011, year) %>% 
-  summarise_each( ~ sum(. * weight, na.rm =T), 6:9) -> simd_2011_reweighted
+  summarise(
+    pop_total = sum(pop_total * weight),
+    pop_workingage = sum(pop_workingage * weight), 
+    pop_incomedeprived = sum(pop_incomedeprived * weight)
+  ) -> simd_2011_reweighted
 
+            
 simd_2016_simplified <- simd_combined %>% 
   filter(year == 2016) %>% 
-  dplyr::select(dz_2011 = datazone, year, pop_total, pop_workingage, pop_incomedeprived, simd_score)
+  dplyr::select(dz_2011 = datazone, year, pop_total, pop_workingage, pop_incomedeprived)
 
 simd_2011_reweighted <- bind_rows(simd_2011_reweighted, simd_2016_simplified)
 
 write_csv(x = simd_2011_reweighted, path = "data/simd/simd_combined_on_2011.csv")
+
+
+
+
 
 # Shapefile for 2011
 dz_2011 <- read_shape(file = "shapefiles/SG_DataZoneBdry_2011/SG_DataZone_Bdry_2011.shp")
