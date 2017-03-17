@@ -36,7 +36,30 @@ D <- function(minority, total){
   out <- 0.5 * sum(ad)
   out
 }
-
+# 
+# #  LOOK AT ALTERNATIVE, SPLITTING BY FIRST QUINTILE OF DISTANCE
+# D_alt <- function(minority, total, is_inner){
+#   # is_inner is a vector of same length as min and total, 
+#   # with TRUE to indicate if values come from top quintile, 
+#   # FALSE otherwise 
+#   
+# majority      <- total - minority
+# MINORITY      <- sum(minority)
+# MAJORITY      <- sum(majority)
+# 
+# p1 <- minority / MINORITY
+# p2 <- majority / MAJORITY 
+# 
+# ad <- abs(p1 - p2)
+# 
+# out <- 0.5 * sum(ad) # Overall 
+# 
+# out_inner <- 0.5 * sum(ad[is_inner])
+# out_outer <- 0.5 * sum(ad[!is_inner])
+# 
+# full_out = list(overall = out, inner_quintile = out_inner, other_quintiles = out_outer)
+# }
+# 
 # Work out the spatial concentration of people in area
 calc_gini <- function(DATA){
   
@@ -1327,8 +1350,10 @@ ypd %>%   inner_join(decile_lookup) %>%
 ggsave("figures/TTWA/alternative_nonid_share_by_dens_decile_and_ttwa.png", height = 25, width = 25, units = "cm", dpi = 300)
 
 
-# TO UPDATE BELOW TO USE DECILE LOOKUP
-# Density and distance on a single plot 
+
+# Figure: Density and distance in a single plot ---------------------------
+
+
 ypd %>% 
   inner_join(decile_lookup) %>% 
   mutate(
@@ -1352,8 +1377,6 @@ ypd %>%
   group_by(Year, place) %>% 
   mutate(share_id_dens = pop_id / sum(pop_id)) %>% 
   select(Year, place, decile = dens_decile_pop, share_id_dens) -> tmp1
-
-# Figure: Density and distance in a single plot ---------------------------
 
 
 ypd %>%   
@@ -1445,38 +1468,64 @@ dd_share %>%
 ggsave("figures/TTWA/alternative_dens_dist_decile_correspondence_no_2012.png", height = 40, width = 30, units = "cm", dpi = 300)
 
 
+# Figure of share of ID by decile of distance and density in 2004 only 
+
+dd_share %>% 
+  filter(Year == "2004") %>% 
+  gather(key = "dd", value = "share", share_id_dens, share_id_dist) %>%
+  mutate(dd = fct_recode(dd, Density = "share_id_dens", Distance = "share_id_dist")) %>% 
+  ungroup() %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = factor(decile), y = share, group = dd, colour = dd)) + 
+  geom_point(aes(shape = dd)) + geom_line(aes(linetype = dd)) + 
+  facet_wrap( ~ place) +   theme_minimal() +
+  theme(strip.text.y = element_text(angle = 0)) +
+  labs(
+    title = "Correspondence between Income Deprived share and deciles of density and distance in 2004",
+    x = "Decile of density or distance",
+    y = "Share of TTWA's income deprived population"
+  ) + 
+  guides(
+    shape = guide_legend(
+      title = "Density/Distance decile"
+    ),
+    linetype = guide_legend(
+      title = "Density/Distance decile"
+    ),
+    colour = guide_legend(
+      title = "Density/Distance decile"
+    )
+  )
+ggsave("figures/TTWA/alternative_dens_dist_decile_correspondence_in_2004.png", height = 40, width = 30, units = "cm", dpi = 300)
+
+
 
 
 # Correlation between the two? 
 # TO DO - UPDATE BELOW USING NEW DECILES 
 
 ypd %>% 
-  
-  group_by(year, place) %>% 
-  mutate(
-    density = pop_total / area,
-    decile = 11 - ntile(density, 10)
-  ) %>% 
-  group_by(year, place, decile) %>% 
+  inner_join(decile_lookup) %>% 
+  group_by(year, place, dens_decile_pop) %>% 
   summarise(pop_id = sum(pop_id)) %>% 
   group_by(year, place) %>% 
   mutate(share_id_dens = pop_id / sum(pop_id)) %>% 
-  select(year, place, decile, share_id_dens) -> tmp1
+  select(year, place, decile = dens_decile_pop, share_id_dens) -> tmp1
 
 ypd %>% 
-  group_by(year, place) %>% 
-  mutate(
-    decile = ntile(distance, 10)
-  ) %>% 
-  group_by(year, place, decile) %>% 
+  inner_join(decile_lookup) %>% 
+  
+  group_by(year, place, dist_decile_pop) %>% 
   summarise(pop_id = sum(pop_id)) %>% 
   group_by(year, place) %>% 
   mutate(share_id_dist = pop_id / sum(pop_id)) %>% 
-  select(year, place, decile, share_id_dist) -> tmp2
+  select(year, place, decile = dist_decile_pop, share_id_dist) -> tmp2
 
 dd_share <- inner_join(tmp1, tmp2)
 
 rm(tmp1, tmp2)
+
+
 dd_share %>% 
   group_by(year, place) %>% 
   nest() %>% 
@@ -1487,8 +1536,8 @@ dd_share %>%
   ggplot(., aes(x = year, y = cr)) + 
   geom_point() + geom_line() + 
   facet_wrap(~place) + geom_hline(aes(yintercept = 0)) + 
-  labs(x = "Year", y = "Correlation between rdi and rci by deciles within year")
-ggsave("figures/TTWA/cor_between_dd_dec_over_time.png", height = 25, width = 25, units = "cm", dpi = 300)
+  labs(x = "Year", y = "Correlation between ID shares by deciles of distance and density within year")
+ggsave("figures/TTWA/alternative_cor_between_dd_dec_over_time.png", height = 25, width = 25, units = "cm", dpi = 300)
 
 
 
@@ -1511,6 +1560,44 @@ rci_by_year_place %>%
 
 
 
+
+# # Correlation between deciles (based on 2004 pop) of distance and density by place 
+# 
+# decile_lookup %>% 
+#   select(-lsoa) %>% 
+#   group_by(place) %>% 
+#   nest() %>%   
+#   mutate(cr = map_dbl(data, function(x) cor(x[,1:2])[2,1]))  %>%
+#   select(-data) %>% 
+#   write.csv("clipboard")
+
+# TO DO 
+# To copy to  table 
+
+
+
+
+
+# dta %>% 
+#   inner_join(decile_lookup) %>% 
+#   mutate(is_inner = dist_decile_pop <= 2) %>% 
+#   group_by(place, year) %>% 
+#   nest() %>% 
+#   filter(place != "Cardiff") %>% 
+#   mutate(
+#     pvec = map(data, ~ .[["pop_id"]]),
+#     tvec = map(data, ~ .[["pop_total"]]),
+#     is_inner = map(data, ~. [["is_inner"]])
+#   ) %>% 
+#   mutate(d_val = pmap(list(pvec, tvec, is_inner), D_alt)) %>% 
+#   mutate(d_val_overall = map_dbl(d_val, ~ .[[1]])) %>% 
+#   mutate(d_val_inner = map_dbl(d_val, ~ .[[2]])) %>% 
+#   mutate(d_val_outer = map_dbl(d_val, ~ .[[3]])) %>% 
+#   select(-d_val)
+#   select(place, year, rci = rci_val, rdi = rdi_val, d = d_val, pop_area_conc) %>% 
+#   ungroup -> rci_by_year_place
+
+  
 # 
 # 
 # # 3D attempt using RGL ----------------------------------------------------
