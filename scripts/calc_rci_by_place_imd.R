@@ -1329,7 +1329,8 @@ ggsave("figures/TTWA/alternative_nonid_share_by_dens_decile_and_ttwa.png", heigh
 
 # TO UPDATE BELOW TO USE DECILE LOOKUP
 # Density and distance on a single plot 
-ypd %>%   
+ypd %>% 
+  inner_join(decile_lookup) %>% 
   mutate(
     year = factor(year)
   ) %>% 
@@ -1346,21 +1347,17 @@ ypd %>%
       `2015-16` = "2016"
     )
   ) %>% 
-  group_by(Year, place) %>% 
-  mutate(
-    density = pop_total / area,
-    decile = 11 - ntile(density, 10)
-  ) %>% 
-  group_by(Year, place, decile) %>% 
+  group_by(Year, place, dens_decile_pop) %>% 
   summarise(pop_id = sum(pop_id)) %>% 
   group_by(Year, place) %>% 
   mutate(share_id_dens = pop_id / sum(pop_id)) %>% 
-  select(Year, place, decile, share_id_dens) -> tmp1
+  select(Year, place, decile = dens_decile_pop, share_id_dens) -> tmp1
 
 # Figure: Density and distance in a single plot ---------------------------
 
 
-ypd %>% 
+ypd %>%   
+  inner_join(decile_lookup) %>% 
   mutate(
     year = factor(year)
   ) %>% 
@@ -1377,15 +1374,11 @@ ypd %>%
       `2015-16` = "2016"
     )
   ) %>% 
-  group_by(Year, place) %>% 
-  mutate(
-    decile = ntile(distance, 10)
-  ) %>% 
-  group_by(Year, place, decile) %>% 
+  group_by(Year, place, dist_decile_pop) %>% 
   summarise(pop_id = sum(pop_id)) %>% 
   group_by(Year, place) %>% 
   mutate(share_id_dist = pop_id / sum(pop_id)) %>% 
-  select(Year, place, decile, share_id_dist) -> tmp2
+  select(Year, place, decile = dist_decile_pop, share_id_dist) -> tmp2
 
 dd_share <- inner_join(tmp1, tmp2)
 
@@ -1396,7 +1389,7 @@ dd_share %>%
   mutate(dd = fct_recode(dd, Density = "share_id_dens", Distance = "share_id_dist")) %>% 
   ungroup() %>% 
   mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
-  ggplot(., aes(x = factor(decile), y = share, group = dd)) + 
+  ggplot(., aes(x = factor(decile), y = share, group = dd, colour = dd)) + 
   geom_point(aes(shape = dd)) + geom_line(aes(linetype = dd)) + 
   facet_grid(place ~ Year) +   theme_minimal() +
   theme(strip.text.y = element_text(angle = 0)) +
@@ -1412,15 +1405,53 @@ dd_share %>%
     ),
     linetype = guide_legend(
       title = "Density/Distance decile"
+    ),
+    colour = guide_legend(
+      title = "Density/Distance decile"
     )
   )
-ggsave("figures/TTWA/dens_dist_decile_correspondence.png", height = 40, width = 30, units = "cm", dpi = 300)
+ggsave("figures/TTWA/alternative_dens_dist_decile_correspondence.png", height = 40, width = 30, units = "cm", dpi = 300)
+
+
+# As above, but without 2012
+
+dd_share %>% 
+  filter(Year != "2012") %>% 
+  gather(key = "dd", value = "share", share_id_dens, share_id_dist) %>%
+  mutate(dd = fct_recode(dd, Density = "share_id_dens", Distance = "share_id_dist")) %>% 
+  ungroup() %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = factor(decile), y = share, group = dd, colour = dd)) + 
+  geom_point(aes(shape = dd)) + geom_line(aes(linetype = dd)) + 
+  facet_grid(place ~ Year) +   theme_minimal() +
+  theme(strip.text.y = element_text(angle = 0)) +
+  labs(
+    title = "Correspondence between Income Deprived share and deciles of density and distance",
+    x = "Decile of density or distance",
+    y = "Share of TTWA's income deprived population",
+    caption = "No English IMD data for 2012"
+  ) + 
+  guides(
+    shape = guide_legend(
+      title = "Density/Distance decile"
+    ),
+    linetype = guide_legend(
+      title = "Density/Distance decile"
+    ),
+    colour = guide_legend(
+      title = "Density/Distance decile"
+    )
+  )
+ggsave("figures/TTWA/alternative_dens_dist_decile_correspondence_no_2012.png", height = 40, width = 30, units = "cm", dpi = 300)
+
+
 
 
 # Correlation between the two? 
-
+# TO DO - UPDATE BELOW USING NEW DECILES 
 
 ypd %>% 
+  
   group_by(year, place) %>% 
   mutate(
     density = pop_total / area,
