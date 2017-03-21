@@ -94,9 +94,9 @@ dta_scot <- read_csv("data/simd/simd_combined_on_2011.csv")
 
 
 # SIMD - dz2001 (alternative)
-
-dist_to_centre_scot_01 <- read_csv("data/dz_2001_by_dist_to_centres.csv")
-dta_scot_01 <- read_csv("data/simd/simd_combined.csv")
+# 
+# dist_to_centre_scot_01 <- read_csv("data/dz_2001_by_dist_to_centres.csv")
+# dta_scot_01 <- read_csv("data/simd/simd_combined.csv")
 # Inputs to RCI are 
 #povvec
 #popvec
