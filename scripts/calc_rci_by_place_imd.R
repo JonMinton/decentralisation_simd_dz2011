@@ -93,6 +93,74 @@ dist_to_centre_scot <- read_csv("data/dz_2011_by_dist_to_centres.csv")
 dta_scot <- read_csv("data/simd/simd_combined_on_2011.csv")
 
 
+
+
+# Joanna Request  ---------------------------------------------------------
+
+
+# Want to get the share of each TTWA's income deprived population in each LSOA/DZ
+
+# Steps: 
+# 1) standardise and combine dta with dta_scot
+# 2) combined file to ttwa
+# 3) filter to have first and last year (standardise for scot/eng)
+# 4) group by year and ttwa 
+# 5) calculate shares
+# 6) calculate change in shares 
+
+dta_scot %>% 
+  select(lsoa = dz_2011, year, pop_id = pop_incomedeprived, pop_total) %>% 
+  bind_rows(dta) -> tmp1
+
+
+
+lsoa_to_ttwa <- read_csv("data/england_lookup/LSOA11_TTWA11_UK_LU.csv")
+names(lsoa_to_ttwa) <- c("lsoa", "lsoa_nm", "TTWA11CD", "TTWA11NM")
+
+
+tmp1 %>% 
+  left_join(lsoa_to_ttwa) %>% 
+  select(lsoa, year, pop_id, pop_total, ttwa_code = TTWA11CD, ttwa_name = TTWA11NM) %>% 
+#  group_by(year) %>% tally() 
+  mutate(
+    year = factor(year),
+    year = fct_recode(
+      year, 
+      `2004` = "2004",
+      `2006-7` = "2006",
+      `2006-7` = "2007", 
+      `2009-10` = "2009",
+      `2009-10` = "2010", 
+      `2012` = "2012", 
+      `2015-16` = "2015",
+      `2015-16` = "2016"
+      )
+    ) %>% 
+  filter(year %in% c("2004", "2015-16")) %>% 
+  group_by(year, ttwa_code) %>% 
+  mutate(ttwa_id_total = sum(pop_id), ttwa_pop_total = sum(pop_total)) %>% 
+  mutate(
+    ttwa_id_share = pop_id / ttwa_id_total,
+    ttwa_total_share = pop_total / ttwa_pop_total
+    ) -> long_ttwa_share_results
+
+write_csv(long_ttwa_share_results, "data/ttwa_share_long.csv")
+
+# Now to show changing share
+long_ttwa_share_results %>% 
+  ungroup() %>% 
+  select(lsoa, year, ttwa_id_share) %>% 
+  arrange(lsoa, year) %>% 
+  spread(year, ttwa_id_share) %>% 
+  mutate(change_in_id_share_in_ttwa = `2015-16` - `2004`) %>% 
+  left_join(lsoa_to_ttwa) %>% 
+  select(lsoa, ttwa_code = TTWA11CD, ttwa_name = TTWA11NM, change_in_id_share_in_ttwa) -> 
+  ttwa_share_change
+
+write_csv(ttwa_share_change, "data/ttwa_share_change.csv")
+
+
+rm(tmp1, tmp2)
 # SIMD - dz2001 (alternative)
 # 
 # dist_to_centre_scot_01 <- read_csv("data/dz_2001_by_dist_to_centres.csv")
