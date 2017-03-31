@@ -12,7 +12,7 @@ pacman::p_load(
   stringr,  
   purrr,
   rgeos,
-  ggplot2,
+  ggplot2, grid, gtable,
   tmap
 )
 
@@ -92,75 +92,76 @@ dta <- read_csv("data/imd/imd_id_lsoa2011_tidied.csv", col_types = "cddd")
 dist_to_centre_scot <- read_csv("data/dz_2011_by_dist_to_centres.csv")
 dta_scot <- read_csv("data/simd/simd_combined_on_2011.csv")
 
+# 
+# 
+# 
+# # Joanna Request  ---------------------------------------------------------
+# 
+# 
+# # Want to get the share of each TTWA's income deprived population in each LSOA/DZ
+# 
+# # Steps: 
+# # 1) standardise and combine dta with dta_scot
+# # 2) combined file to ttwa
+# # 3) filter to have first and last year (standardise for scot/eng)
+# # 4) group by year and ttwa 
+# # 5) calculate shares
+# # 6) calculate change in shares 
+# 
+# dta_scot %>% 
+#   select(lsoa = dz_2011, year, pop_id = pop_incomedeprived, pop_total) %>% 
+#   bind_rows(dta) -> tmp1
+# 
+# 
+# 
+# lsoa_to_ttwa <- read_csv("data/england_lookup/LSOA11_TTWA11_UK_LU.csv")
+# names(lsoa_to_ttwa) <- c("lsoa", "lsoa_nm", "TTWA11CD", "TTWA11NM")
+# 
+# 
+# tmp1 %>% 
+#   left_join(lsoa_to_ttwa) %>% 
+#   select(lsoa, year, pop_id, pop_total, ttwa_code = TTWA11CD, ttwa_name = TTWA11NM) %>% 
+# #  group_by(year) %>% tally() 
+#   mutate(
+#     year = factor(year),
+#     year = fct_recode(
+#       year, 
+#       `2004` = "2004",
+#       `2006-7` = "2006",
+#       `2006-7` = "2007", 
+#       `2009-10` = "2009",
+#       `2009-10` = "2010", 
+#       `2012` = "2012", 
+#       `2015-16` = "2015",
+#       `2015-16` = "2016"
+#       )
+#     ) %>% 
+#   filter(year %in% c("2004", "2015-16")) %>% 
+#   group_by(year, ttwa_code) %>% 
+#   mutate(ttwa_id_total = sum(pop_id), ttwa_pop_total = sum(pop_total)) %>% 
+#   mutate(
+#     ttwa_id_share = pop_id / ttwa_id_total,
+#     ttwa_total_share = pop_total / ttwa_pop_total
+#     ) -> long_ttwa_share_results
+# 
+# write_csv(long_ttwa_share_results, "data/ttwa_share_long.csv")
+# 
+# # Now to show changing share
+# long_ttwa_share_results %>% 
+#   ungroup() %>% 
+#   select(lsoa, year, ttwa_id_share) %>% 
+#   arrange(lsoa, year) %>% 
+#   spread(year, ttwa_id_share) %>% 
+#   mutate(change_in_id_share_in_ttwa = `2015-16` - `2004`) %>% 
+#   left_join(lsoa_to_ttwa) %>% 
+#   select(lsoa, ttwa_code = TTWA11CD, ttwa_name = TTWA11NM, change_in_id_share_in_ttwa) -> 
+#   ttwa_share_change
+# 
+# write_csv(ttwa_share_change, "data/ttwa_share_change.csv")
+# 
+# 
+# rm(tmp1, tmp2)
 
-
-
-# Joanna Request  ---------------------------------------------------------
-
-
-# Want to get the share of each TTWA's income deprived population in each LSOA/DZ
-
-# Steps: 
-# 1) standardise and combine dta with dta_scot
-# 2) combined file to ttwa
-# 3) filter to have first and last year (standardise for scot/eng)
-# 4) group by year and ttwa 
-# 5) calculate shares
-# 6) calculate change in shares 
-
-dta_scot %>% 
-  select(lsoa = dz_2011, year, pop_id = pop_incomedeprived, pop_total) %>% 
-  bind_rows(dta) -> tmp1
-
-
-
-lsoa_to_ttwa <- read_csv("data/england_lookup/LSOA11_TTWA11_UK_LU.csv")
-names(lsoa_to_ttwa) <- c("lsoa", "lsoa_nm", "TTWA11CD", "TTWA11NM")
-
-
-tmp1 %>% 
-  left_join(lsoa_to_ttwa) %>% 
-  select(lsoa, year, pop_id, pop_total, ttwa_code = TTWA11CD, ttwa_name = TTWA11NM) %>% 
-#  group_by(year) %>% tally() 
-  mutate(
-    year = factor(year),
-    year = fct_recode(
-      year, 
-      `2004` = "2004",
-      `2006-7` = "2006",
-      `2006-7` = "2007", 
-      `2009-10` = "2009",
-      `2009-10` = "2010", 
-      `2012` = "2012", 
-      `2015-16` = "2015",
-      `2015-16` = "2016"
-      )
-    ) %>% 
-  filter(year %in% c("2004", "2015-16")) %>% 
-  group_by(year, ttwa_code) %>% 
-  mutate(ttwa_id_total = sum(pop_id), ttwa_pop_total = sum(pop_total)) %>% 
-  mutate(
-    ttwa_id_share = pop_id / ttwa_id_total,
-    ttwa_total_share = pop_total / ttwa_pop_total
-    ) -> long_ttwa_share_results
-
-write_csv(long_ttwa_share_results, "data/ttwa_share_long.csv")
-
-# Now to show changing share
-long_ttwa_share_results %>% 
-  ungroup() %>% 
-  select(lsoa, year, ttwa_id_share) %>% 
-  arrange(lsoa, year) %>% 
-  spread(year, ttwa_id_share) %>% 
-  mutate(change_in_id_share_in_ttwa = `2015-16` - `2004`) %>% 
-  left_join(lsoa_to_ttwa) %>% 
-  select(lsoa, ttwa_code = TTWA11CD, ttwa_name = TTWA11NM, change_in_id_share_in_ttwa) -> 
-  ttwa_share_change
-
-write_csv(ttwa_share_change, "data/ttwa_share_change.csv")
-
-
-rm(tmp1, tmp2)
 # SIMD - dz2001 (alternative)
 # 
 # dist_to_centre_scot_01 <- read_csv("data/dz_2001_by_dist_to_centres.csv")
@@ -296,63 +297,63 @@ rci_by_year_place <- bind_rows(
 # 
 #write.csv(x = rci_by_year_place, "clipboard")
 
-# Regression summary? 
-# Predictors of RCI 
-
-lm(rci ~ rdi + d, data = rci_by_year_place) %>% summary()
-
-# Year interactions
-lm(rci ~ (rdi + d) * I(year - min(year)), data = rci_by_year_place) %>% summary()
-# Interactions not stat sig
-
-# Year as independent term
-lm(rci ~ (rdi + d) + I(year - min(year)), data = rci_by_year_place) %>% summary()
-# Year not stat sig
-
-# Year only
-lm(rci ~ I(year - min(year)), data = rci_by_year_place) %>% summary()
-# Not stat sig
-
-# Pop area conc
-lm(rci ~ pop_area_conc, data = rci_by_year_place) %>% summary()
-# not stat sig
-
-# fixed effects for place
-lm(rci ~ place , data = rci_by_year_place) %>% 
-  broom::tidy() %>% 
-  mutate(term = str_replace(term, "place", "")) %>% 
-  mutate(term = reorder(term, estimate)) %>% 
-  mutate(lower = estimate - 2* std.error, upper = estimate + 2* std.error) %>% 
-  ggplot(., aes(y = term)) + 
-  geom_point(aes(x = estimate)) + 
-  geom_errorbarh(aes(x = estimate, xmin = lower, xmax = upper)) + 
-  geom_vline(aes(xintercept = 0)) + 
-  labs(x = "Estimate", y = "RCI on Place")
-
-lm(d ~ place, data = rci_by_year_place) %>% 
-  broom::tidy() %>% 
-  mutate(term = str_replace(term, "place", "")) %>% 
-  mutate(term = reorder(term, estimate)) %>% 
-  mutate(lower = estimate - 2* std.error, upper = estimate + 2* std.error) %>% 
-  ggplot(., aes(y = term)) + 
-  geom_point(aes(x = estimate)) + 
-  geom_errorbarh(aes(x = estimate, xmin = lower, xmax = upper)) + 
-  geom_vline(aes(xintercept = 0)) + 
-  labs(x = "Estimate", y = "D on Place")
-
-rci_by_year_place %>% 
-  filter(!is.na(pop_area_conc)) %>% 
-  lm(pop_area_conc ~ place, data = .) %>% 
-  broom::tidy() %>% 
-  mutate(term = str_replace(term, "place", "")) %>% 
-  mutate(term = reorder(term, estimate)) %>% 
-  mutate(lower = estimate - 2* std.error, upper = estimate + 2* std.error) %>% 
-  ggplot(., aes(y = term)) + 
-  geom_point(aes(x = estimate)) + 
-  geom_errorbarh(aes(x = estimate, xmin = lower, xmax = upper)) + 
-  geom_vline(aes(xintercept = 0)) + 
-  labs(x = "Estimate", y = "Spatial Concentration on Place")
-
+# # Regression summary? 
+# # Predictors of RCI 
+# 
+# lm(rci ~ rdi + d, data = rci_by_year_place) %>% summary()
+# 
+# # Year interactions
+# lm(rci ~ (rdi + d) * I(year - min(year)), data = rci_by_year_place) %>% summary()
+# # Interactions not stat sig
+# 
+# # Year as independent term
+# lm(rci ~ (rdi + d) + I(year - min(year)), data = rci_by_year_place) %>% summary()
+# # Year not stat sig
+# 
+# # Year only
+# lm(rci ~ I(year - min(year)), data = rci_by_year_place) %>% summary()
+# # Not stat sig
+# 
+# # Pop area conc
+# lm(rci ~ pop_area_conc, data = rci_by_year_place) %>% summary()
+# # not stat sig
+# 
+# # fixed effects for place
+# lm(rci ~ place , data = rci_by_year_place) %>% 
+#   broom::tidy() %>% 
+#   mutate(term = str_replace(term, "place", "")) %>% 
+#   mutate(term = reorder(term, estimate)) %>% 
+#   mutate(lower = estimate - 2* std.error, upper = estimate + 2* std.error) %>% 
+#   ggplot(., aes(y = term)) + 
+#   geom_point(aes(x = estimate)) + 
+#   geom_errorbarh(aes(x = estimate, xmin = lower, xmax = upper)) + 
+#   geom_vline(aes(xintercept = 0)) + 
+#   labs(x = "Estimate", y = "RCI on Place")
+# 
+# lm(d ~ place, data = rci_by_year_place) %>% 
+#   broom::tidy() %>% 
+#   mutate(term = str_replace(term, "place", "")) %>% 
+#   mutate(term = reorder(term, estimate)) %>% 
+#   mutate(lower = estimate - 2* std.error, upper = estimate + 2* std.error) %>% 
+#   ggplot(., aes(y = term)) + 
+#   geom_point(aes(x = estimate)) + 
+#   geom_errorbarh(aes(x = estimate, xmin = lower, xmax = upper)) + 
+#   geom_vline(aes(xintercept = 0)) + 
+#   labs(x = "Estimate", y = "D on Place")
+# 
+# rci_by_year_place %>% 
+#   filter(!is.na(pop_area_conc)) %>% 
+#   lm(pop_area_conc ~ place, data = .) %>% 
+#   broom::tidy() %>% 
+#   mutate(term = str_replace(term, "place", "")) %>% 
+#   mutate(term = reorder(term, estimate)) %>% 
+#   mutate(lower = estimate - 2* std.error, upper = estimate + 2* std.error) %>% 
+#   ggplot(., aes(y = term)) + 
+#   geom_point(aes(x = estimate)) + 
+#   geom_errorbarh(aes(x = estimate, xmin = lower, xmax = upper)) + 
+#   geom_vline(aes(xintercept = 0)) + 
+#   labs(x = "Estimate", y = "Spatial Concentration on Place")
+# 
 
 
 # Want to arrange TTWA by population size in (say) 2010
@@ -422,6 +423,17 @@ rci_by_year_place %>%
   geom_line(alpha = 0.6) + geom_text(aes(label = place))  + 
   labs(x = "Year", y = "Absolute Concentration Score", title = "Absolute population concentration over time")
 ggsave("figures/TTWA/population_concentration_scores.png", height = 30, width = 30, dpi =300, units = "cm")
+
+
+rci_by_year_place %>% 
+  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
+  ggplot(., aes(x = year, y = pop_area_conc, group = place)) + 
+  geom_line(alpha = 0.6) + geom_text(aes(label = place))  + 
+  labs(x = "Year", y = "Absolute Concentration Score", title = "Absolute population concentration over time")
+
+
+ggsave("figures/TTWA/population_concentration_scores.png", height = 30, width = 30, dpi =300, units = "cm")
+
 
 # rci_by_year_place_scot01 %>%
 #   mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>%
@@ -1038,7 +1050,32 @@ ggsave("figures/TTWA/alternative_change_both_share_by_dens_decile_and_ttwa.png",
 
 # FIGURE: Share of both by decile of density in 2004 only ------------------------------------------------------
 
-ypd %>%   inner_join(decile_lookup) %>% 
+
+# Alternative - use cowplot
+
+larger_ttwa_list <- c(
+  "London", "Manchester", "Birmingham", "Glasgow", "Newcastle", "Liverpool",
+  "Leicester", "Sheffield", "Leeds", "Bristol", "Nottingham"
+)
+
+smaller_ttwa_list <- c(
+  "Edinburgh", "Southampton", "Crawley" ,"Medway", "Coventry", "Reading",
+  "Portsmouth", "Oxford"
+)
+
+smaller_poly_list <- c(
+  "Warrington and Wigan", "Wolverhampton and Walsall", "Luton", "Cambridge", 
+  "Guildford and Aldershot" ,"Southend"
+)
+
+new_place_ordering <- c(
+  larger_ttwa_list, smaller_ttwa_list, smaller_poly_list
+)
+  
+  
+
+ypd %>%   
+  inner_join(decile_lookup) %>% 
   mutate(pop_nonid = pop_total - pop_id) %>% 
   mutate(
     year = factor(year)
@@ -1056,41 +1093,272 @@ ypd %>%   inner_join(decile_lookup) %>%
       `2015-16` = "2016"
     )
   ) %>% 
-  mutate(place = factor(place, ordered = T, levels = place_by_size_order)) %>% 
-  group_by(Year, place) %>% 
-  group_by(Year, place, dens_decile_pop) %>% 
-  summarise(
-    pop_nonid = sum(pop_nonid),
-    pop_id = sum(pop_id)
-  ) %>% 
-  group_by(Year, place) %>% 
   mutate(
-    share_nonid = pop_nonid / sum(pop_nonid),
-    share_id = pop_id / sum(pop_id)
-  ) %>%
-  filter(Year %in% c("2004")) %>% 
-  select(Year, place, dens_decile_pop, share_nonid, share_id) %>% 
-  gather(population, share, share_nonid, share_id) %>% 
-  mutate(population = fct_recode(
-    population,
-    `Not income deprived` = "share_nonid",
-    `Income deprived` = "share_id"
-  )
-  ) %>% 
-  select(place, dens_decile_pop, population, share) %>% 
-  ggplot(., aes(x = dens_decile_pop, y = share, group = population)) + 
-  geom_point(aes(shape = population, colour = population)) + geom_line(aes(linetype = population, colour = population)) + 
-  facet_wrap(~place) + 
-  labs(
-    x = "Decile of density in TTWA (1 = most dense)",
-    y = "Share of TTWA's sub-populations", 
-    title = "Share of TTWA sub-populations by decile of density in 2004",
-    subtitle = "TTWAs arranged by size",
-    caption = "Scottish and English IMDs are for different years"
-  ) +
-  scale_x_continuous(breaks = 1:10) + 
-  geom_hline(aes(yintercept = 0), linetype = "dashed")
-ggsave("figures/TTWA/alternative_share_by_dens_decile_and_ttwa_in_2004.png", height = 25, width = 30, units = "cm", dpi = 300)
+    place = factor(place, ordered = T, levels = new_place_ordering)
+  ) -> data_with_both
+
+
+# Solution to colouring from 
+
+# http://stackoverflow.com/questions/24169675/multiple-colors-in-a-facet-strip-background
+
+## Sample data
+find_place_type <- function(x){
+  out <- NA
+  if (x %in% larger_ttwa_list) {out <- "Larger TTWA"}
+  if (x %in% smaller_ttwa_list) {out <- "Smaller TTWA"}
+  if (x %in% smaller_poly_list) {out <- "Smaller Polycentric TTWA"}
+  
+  out
+}
+
+## Add in some colors based on the data
+
+# trying the following
+#http://stackoverflow.com/questions/22457981/ggplot2-facet-grid-strip-text-x-different-colours-based-on-factor/22459250#22459250
+
+do_both_plot_density <- function(
+  x
+  ){
+  
+  x %>% 
+  group_by(Year, place, dens_decile_pop) %>% 
+    summarise(
+      pop_nonid = sum(pop_nonid),
+      pop_id = sum(pop_id)
+    ) %>% 
+    group_by(Year, place) %>% 
+    mutate(
+      share_nonid = pop_nonid / sum(pop_nonid),
+      share_id = pop_id / sum(pop_id)
+    ) %>%
+    filter(Year %in% c("2004")) %>% 
+    select(Year, place, dens_decile_pop, share_nonid, share_id) %>% 
+    gather(population, share, share_nonid, share_id) %>% 
+    mutate(population = fct_recode(
+      population,
+      `Not income deprived` = "share_nonid",
+      `Income deprived` = "share_id"
+      )
+    ) %>% 
+    select(place, dens_decile_pop, population, share) %>% 
+    mutate(
+      place_type = map_chr(place, find_place_type)
+    ) -> data_prepared
+  
+    data_prepared %>% 
+      ggplot(., aes(x = dens_decile_pop, y = share, group = population)) + 
+      geom_point(aes(shape = population, colour = population)) + geom_line(aes(linetype = population, colour = population)) + 
+      facet_wrap(~place, ncol = 5) + 
+      labs(
+        x = "Decile of density in TTWA (1 = most dense)",
+        y = "Share of TTWA's sub-populations", 
+        title = "Share of TTWA sub-populations by decile of density in 2004",
+        subtitle = "TTWAs arranged by type and size (Red: large; blue: small; green: polycentric)",
+        caption = "Scottish and English IMDs are for different years"
+      ) +
+      scale_x_continuous(breaks = 1:10) + 
+      geom_hline(aes(yintercept = 0), linetype = "dashed") -> plot
+  
+
+    data_prepared %>% 
+      ggplot(., aes(x = dens_decile_pop, y = share, group = population)) + 
+      facet_wrap(~place, ncol = 5) +
+      geom_rect(aes(fill=place_type), xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
+      theme_minimal() -> dummy
+    
+    g1 <- ggplotGrob(plot)
+    g2 <- ggplotGrob(dummy)
+    
+    gtable_select <- function (x, ...) 
+    {
+      matches <- c(...)
+      x$layout <- x$layout[matches, , drop = FALSE]
+      x$grobs <- x$grobs[matches]
+      x
+    }
+    
+    panels <- grepl(pattern="panel", g2$layout$name)
+    strips <- grepl(pattern="strip-t", g2$layout$name)
+    g2$layout$t[panels] <- g2$layout$t[panels] - 1
+    g2$layout$b[panels] <- g2$layout$b[panels] - 1
+    
+    new_strips <- gtable_select(g2, panels | strips)
+    grid.newpage()
+    grid.draw(new_strips)
+    
+    gtable_stack <- function(g1, g2){
+      g1$grobs <- c(g1$grobs, g2$grobs)
+      g1$layout <- transform(g1$layout, z= z-max(z), name="g2")
+      g1$layout <- rbind(g1$layout, g2$layout)
+      g1
+    }
+    ## ideally you'd remove the old strips, for now they're just covered
+    new_plot <- gtable_stack(g1, new_strips)
+    
+    grid.draw(new_plot)
+    NULL
+}
+
+do_both_plot_density(data_with_both) 
+
+png2 <- function(x) {
+  png("figures/TTWA/alternative_share_by_dens_decile_and_ttwa_in_2004.png", 
+      width = 25, height = 25, units = "cm", res = 300)
+  }
+
+dev.copy(dev.cur(), device = png2)
+dev.off()
+
+
+# Same again, but distance
+
+
+do_both_plot_distance <- function(
+  x
+){
+  
+  x %>% 
+    group_by(Year, place, dist_decile_pop) %>% 
+    summarise(
+      pop_nonid = sum(pop_nonid),
+      pop_id = sum(pop_id)
+    ) %>% 
+    group_by(Year, place) %>% 
+    mutate(
+      share_nonid = pop_nonid / sum(pop_nonid),
+      share_id = pop_id / sum(pop_id)
+    ) %>%
+    filter(Year %in% c("2004")) %>% 
+    select(Year, place, dist_decile_pop, share_nonid, share_id) %>% 
+    gather(population, share, share_nonid, share_id) %>% 
+    mutate(population = fct_recode(
+      population,
+      `Not income deprived` = "share_nonid",
+      `Income deprived` = "share_id"
+    )
+    ) %>% 
+    select(place, dist_decile_pop, population, share) %>% 
+    mutate(
+      place_type = map_chr(place, find_place_type)
+    ) -> data_prepared
+  
+  data_prepared %>% 
+    ggplot(., aes(x = dist_decile_pop, y = share, group = population)) + 
+    geom_point(aes(shape = population, colour = population)) + geom_line(aes(linetype = population, colour = population)) + 
+    facet_wrap(~place, ncol = 5) + 
+    labs(
+      x = "Decile of distance in TTWA (1 = most central)",
+      y = "Share of TTWA's sub-populations", 
+      title = "Share of TTWA sub-populations by decile of density in 2004",
+      subtitle = "TTWAs arranged by type and size (Red: large; blue: small; green: polycentric)",
+      caption = "Scottish and English IMDs are for different years"
+    ) +
+    scale_x_continuous(breaks = 1:10) + 
+    geom_hline(aes(yintercept = 0), linetype = "dashed") -> plot
+  
+  
+  data_prepared %>% 
+    ggplot(., aes(x = dist_decile_pop, y = share, group = population)) + 
+    facet_wrap(~place, ncol = 5) +
+    geom_rect(aes(fill=place_type), xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
+    theme_minimal() -> dummy
+  
+  g1 <- ggplotGrob(plot)
+  g2 <- ggplotGrob(dummy)
+  
+  gtable_select <- function (x, ...) 
+  {
+    matches <- c(...)
+    x$layout <- x$layout[matches, , drop = FALSE]
+    x$grobs <- x$grobs[matches]
+    x
+  }
+  
+  panels <- grepl(pattern="panel", g2$layout$name)
+  strips <- grepl(pattern="strip-t", g2$layout$name)
+  g2$layout$t[panels] <- g2$layout$t[panels] - 1
+  g2$layout$b[panels] <- g2$layout$b[panels] - 1
+  
+  new_strips <- gtable_select(g2, panels | strips)
+  grid.newpage()
+  grid.draw(new_strips)
+  
+  gtable_stack <- function(g1, g2){
+    g1$grobs <- c(g1$grobs, g2$grobs)
+    g1$layout <- transform(g1$layout, z= z-max(z), name="g2")
+    g1$layout <- rbind(g1$layout, g2$layout)
+    g1
+  }
+  ## ideally you'd remove the old strips, for now they're just covered
+  new_plot <- gtable_stack(g1, new_strips)
+  
+  grid.draw(new_plot)
+  NULL
+}
+
+do_both_plot_distance(data_with_both) 
+
+png2 <- function(x) {
+  png("figures/TTWA/alternative_share_by_dist_decile_and_ttwa_in_2004.png", 
+      width = 25, height = 25, units = "cm", res = 300)
+}
+
+dev.copy(dev.cur(), device = png2)
+dev.off()
+
+# Using code from 
+# http://stackoverflow.com/questions/19440069/ggplot2-facet-wrap-strip-color-based-on-variable-in-data-set
+
+
+# d <- data.frame(fruit = rep(c("apple", "orange", "plum", "banana", "pear", "grape")), 
+#                 farm = rep(c(0,1,3,6,9,12), each=6), 
+#                 weight = rnorm(36, 10000, 2500), 
+#                 size=rep(c("small", "large")))
+# 
+# p1 = ggplot(data = d, aes(x = farm, y = weight)) + 
+#   geom_jitter(position = position_jitter(width = 0.3), 
+#               aes(color = factor(farm)), size = 2.5, alpha = 1) + 
+#   facet_wrap(~fruit)
+# 
+# dummy <- ggplot(data = d, aes(x = farm, y = weight))+ facet_wrap(~fruit) + 
+#   geom_rect(aes(fill=size), xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
+#   theme_minimal()
+# 
+# library(gtable)
+# 
+# g1 <- ggplotGrob(p1)
+# g2 <- ggplotGrob(dummy)
+# 
+# gtable_select <- function (x, ...) 
+# {
+#   matches <- c(...)
+#   x$layout <- x$layout[matches, , drop = FALSE]
+#   x$grobs <- x$grobs[matches]
+#   x
+# }
+# 
+# panels <- grepl(pattern="panel", g2$layout$name)
+# strips <- grepl(pattern="strip-t", g2$layout$name)
+# g2$layout$t[panels] <- g2$layout$t[panels] - 1
+# g2$layout$b[panels] <- g2$layout$b[panels] - 1
+# 
+# new_strips <- gtable_select(g2, panels | strips)
+# grid.newpage()
+# grid.draw(new_strips)
+# 
+# gtable_stack <- function(g1, g2){
+#   g1$grobs <- c(g1$grobs, g2$grobs)
+#   g1$layout <- transform(g1$layout, z= z-max(z), name="g2")
+#   g1$layout <- rbind(g1$layout, g2$layout)
+#   g1
+# }
+# ## ideally you'd remove the old strips, for now they're just covered
+# new_plot <- gtable_stack(g1, new_strips)
+# grid.newpage()
+# grid.draw(new_plot)
+# 
+
 
 # FIGURE: Share of both by decile of distancein 2004 only ------------------------------------------------------
 
