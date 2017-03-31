@@ -36,30 +36,7 @@ D <- function(minority, total){
   out <- 0.5 * sum(ad)
   out
 }
-# 
-# #  LOOK AT ALTERNATIVE, SPLITTING BY FIRST QUINTILE OF DISTANCE
-# D_alt <- function(minority, total, is_inner){
-#   # is_inner is a vector of same length as min and total, 
-#   # with TRUE to indicate if values come from top quintile, 
-#   # FALSE otherwise 
-#   
-# majority      <- total - minority
-# MINORITY      <- sum(minority)
-# MAJORITY      <- sum(majority)
-# 
-# p1 <- minority / MINORITY
-# p2 <- majority / MAJORITY 
-# 
-# ad <- abs(p1 - p2)
-# 
-# out <- 0.5 * sum(ad) # Overall 
-# 
-# out_inner <- 0.5 * sum(ad[is_inner])
-# out_outer <- 0.5 * sum(ad[!is_inner])
-# 
-# full_out = list(overall = out, inner_quintile = out_inner, other_quintiles = out_outer)
-# }
-# 
+
 # Work out the spatial concentration of people in area
 calc_gini <- function(DATA){
   
@@ -1912,28 +1889,53 @@ rci_by_year_place %>%
 
 
 
+#  LOOK AT ALTERNATIVE, SPLITTING BY FIRST QUINTILE OF DISTANCE
+D_alt <- function(minority, total, is_inner){
+  # is_inner is a vector of same length as min and total,
+  # with TRUE to indicate if values come from top quintile,
+  # FALSE otherwise
+
+majority      <- total - minority
+MINORITY      <- sum(minority)
+MAJORITY      <- sum(majority)
+
+p1 <- minority / MINORITY
+p2 <- majority / MAJORITY
+
+ad <- abs(p1 - p2)
+
+out <- 0.5 * sum(ad) # Overall
+
+out_inner <- 0.5 * sum(ad[is_inner])
+out_outer <- 0.5 * sum(ad[!is_inner])
+
+full_out = list(overall = out, inner_quintile = out_inner, other_quintiles = out_outer)
+}
 
 
-# dta %>% 
-#   inner_join(decile_lookup) %>% 
-#   mutate(is_inner = dist_decile_pop <= 2) %>% 
-#   group_by(place, year) %>% 
-#   nest() %>% 
-#   filter(place != "Cardiff") %>% 
-#   mutate(
-#     pvec = map(data, ~ .[["pop_id"]]),
-#     tvec = map(data, ~ .[["pop_total"]]),
-#     is_inner = map(data, ~. [["is_inner"]])
-#   ) %>% 
-#   mutate(d_val = pmap(list(pvec, tvec, is_inner), D_alt)) %>% 
-#   mutate(d_val_overall = map_dbl(d_val, ~ .[[1]])) %>% 
-#   mutate(d_val_inner = map_dbl(d_val, ~ .[[2]])) %>% 
-#   mutate(d_val_outer = map_dbl(d_val, ~ .[[3]])) %>% 
-#   select(-d_val)
-#   select(place, year, rci = rci_val, rdi = rdi_val, d = d_val, pop_area_conc) %>% 
-#   ungroup -> rci_by_year_place
+tmp <- dta_scot %>% select(lsoa = dz_2011, year, pop_id = pop_incomedeprived, pop_total)
+dta %>%
+  bind_rows(tmp) %>%   
+  inner_join(decile_lookup) %>%
+  mutate(is_inner = dist_decile_pop <= 2) %>%
+  group_by(place, year) %>%
+  nest() %>%
+  filter(place != "Cardiff") %>%
+  mutate(
+    pvec = map(data, ~ .[["pop_id"]]),
+    tvec = map(data, ~ .[["pop_total"]]),
+    is_inner = map(data, ~. [["is_inner"]])
+  ) %>%
+  mutate(d_val = pmap(list(pvec, tvec, is_inner), D_alt)) %>%
+  mutate(d_val_overall = map_dbl(d_val, ~ .[[1]])) %>%
+  mutate(d_val_inner = map_dbl(d_val, ~ .[[2]])) %>%
+  mutate(d_val_outer = map_dbl(d_val, ~ .[[3]])) %>%
+  select(place, year, d_val_overall, d_val_inner, d_val_outer) %>% 
+  arrange(place, year) -> table_of_d_separated
 
-  
+rm(tmp)  
+
+write_csv(table_of_d_separated, path = "data/table_of_d_separated.csv")
 # 
 # 
 # # 3D attempt using RGL ----------------------------------------------------
