@@ -1935,7 +1935,7 @@ dta %>%
 
 rm(tmp)  
 
-write_csv(table_of_d_separated, path = "data/table_of_d_separated.csv")
+write_csv(table_of_d_separated, path = "tables/table_of_d_separated.csv")
 # 
 # 
 # # 3D attempt using RGL ----------------------------------------------------
