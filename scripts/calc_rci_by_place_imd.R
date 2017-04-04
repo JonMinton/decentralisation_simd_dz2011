@@ -1027,9 +1027,6 @@ ggsave("figures/TTWA/alternative_change_both_share_by_dens_decile_and_ttwa.png",
 
 # FIGURE: Share of both by decile of density in 2004 only ------------------------------------------------------
 
-
-# Alternative - use cowplot
-
 larger_ttwa_list <- c(
   "London", "Manchester", "Birmingham", "Glasgow", "Newcastle", "Liverpool",
   "Leicester", "Sheffield", "Leeds", "Bristol", "Nottingham"
@@ -1335,6 +1332,213 @@ dev.off()
 # grid.newpage()
 # grid.draw(new_plot)
 # 
+
+
+
+# FIGURE: Share of ID by decile of either distance or density -------------
+
+
+
+larger_ttwa_list <- c(
+  "London", "Manchester", "Birmingham", "Glasgow", "Newcastle", "Liverpool",
+  "Leicester", "Sheffield", "Leeds", "Bristol", "Nottingham"
+)
+
+smaller_ttwa_list <- c(
+  "Edinburgh", "Southampton", "Crawley" ,"Medway", "Coventry", "Reading",
+  "Portsmouth", "Oxford"
+)
+
+smaller_poly_list <- c(
+  "Warrington and Wigan", "Wolverhampton and Walsall", "Luton", "Cambridge", 
+  "Guildford and Aldershot" ,"Southend"
+)
+
+new_place_ordering <- c(
+  larger_ttwa_list, smaller_ttwa_list, smaller_poly_list
+)
+
+
+
+ypd %>%   
+  inner_join(decile_lookup) %>% 
+  mutate(pop_nonid = pop_total - pop_id) %>% 
+  mutate(
+    year = factor(year)
+  ) %>%
+  mutate(
+    Year = fct_recode(
+      year, 
+      `2004` = "2004",
+      `2006-07` = "2006",
+      `2006-07` = "2007",
+      `2009-10` = "2009",
+      `2009-10` = "2010",
+      `2012`      = "2012",    
+      `2015-16` = "2015",
+      `2015-16` = "2016"
+    )
+  ) %>% 
+  mutate(
+    place = factor(place, ordered = T, levels = new_place_ordering)
+  ) -> data_with_both
+
+
+# Solution to colouring from 
+
+# http://stackoverflow.com/questions/24169675/multiple-colors-in-a-facet-strip-background
+
+## Sample data
+find_place_type <- function(x){
+  out <- NA
+  if (x %in% larger_ttwa_list) {out <- "Larger TTWA"}
+  if (x %in% smaller_ttwa_list) {out <- "Smaller TTWA"}
+  if (x %in% smaller_poly_list) {out <- "Smaller Polycentric TTWA"}
+  
+  out
+}
+
+## Add in some colors based on the data
+
+# trying the following
+#http://stackoverflow.com/questions/22457981/ggplot2-facet-grid-strip-text-x-different-colours-based-on-factor/22459250#22459250
+
+do_id_plot_both <- function(
+  x
+){
+  
+  x %>% 
+    group_by(Year, place, dens_decile_pop) %>% 
+    summarise(
+      pop_nonid = sum(pop_nonid),
+      pop_id = sum(pop_id)
+    ) %>% 
+    group_by(Year, place) %>% 
+    mutate(
+      share_nonid = pop_nonid / sum(pop_nonid),
+      share_id = pop_id / sum(pop_id)
+    ) %>%
+    filter(Year %in% c("2004")) %>% 
+    select(Year, place, dens_decile_pop, share_nonid, share_id) %>% 
+    gather(population, share, share_nonid, share_id) %>% 
+    mutate(population = fct_recode(
+      population,
+      `Not income deprived` = "share_nonid",
+      `Income deprived` = "share_id"
+    )
+    ) %>% 
+    select(place, dens_decile_pop, population, share) %>% 
+    mutate(
+      place_type = map_chr(place, find_place_type)
+    ) -> data_prepared_dens
+  
+  x %>% 
+    group_by(Year, place, dist_decile_pop) %>% 
+    summarise(
+      pop_nonid = sum(pop_nonid),
+      pop_id = sum(pop_id)
+    ) %>% 
+    group_by(Year, place) %>% 
+    mutate(
+      share_nonid = pop_nonid / sum(pop_nonid),
+      share_id = pop_id / sum(pop_id)
+    ) %>%
+    filter(Year %in% c("2004")) %>% 
+    select(Year, place, dist_decile_pop, share_nonid, share_id) %>% 
+    gather(population, share, share_nonid, share_id) %>% 
+    mutate(population = fct_recode(
+      population,
+      `Not income deprived` = "share_nonid",
+      `Income deprived` = "share_id"
+    )
+    ) %>% 
+    select(place, dist_decile_pop, population, share) %>% 
+    mutate(
+      place_type = map_chr(place, find_place_type)
+    ) -> data_prepared_dist
+  
+  data_prepared_dens %>% 
+    filter(population == "Income deprived") %>% 
+    select(-population) %>% 
+    rename(decile_pop = dens_decile_pop) %>% 
+    mutate(type = "Density") -> tmp1
+  
+  data_prepared_dist %>% 
+    filter(population == "Income deprived") %>% 
+    select(-population) %>% 
+    rename(decile_pop = dist_decile_pop) %>% 
+    mutate(type = "Distance") -> tmp2
+  
+  dta_prepared_new <- bind_rows(tmp1, tmp2) %>% 
+    select(Year, place, type, place_type, decile_pop, share)
+  
+  rm(tmp1, tmp2)
+  
+  
+  dta_prepared_new %>% 
+    ggplot(., aes(x = decile_pop, y = share, group = type)) + 
+    geom_point(aes(shape = type, colour = type)) + geom_line(aes(linetype = type, colour = type)) + 
+    facet_wrap(~place, ncol = 5) + 
+    labs(
+      x = "Decile of density or distance in TTWA (1 = most dense or nearest)",
+      y = "Share of TTWA's Income Deprived population", 
+      title = "Share of TTWA Income Deprived by decile of density or distance in 2004",
+      subtitle = "TTWAs arranged by type and size (Red: large; blue: small; green: polycentric)",
+      caption = "Scottish and English IMDs are for different years"
+    ) +
+    scale_x_continuous(breaks = 1:10) + 
+    geom_hline(aes(yintercept = 0), linetype = "dashed") -> plot
+  
+  
+  dta_prepared_new %>% 
+    ggplot(., aes(x = decile_pop, y = share, group = type)) + 
+    facet_wrap(~place, ncol = 5) +
+    geom_rect(aes(fill=place_type), xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
+    theme_minimal() -> dummy
+  
+  g1 <- ggplotGrob(plot)
+  g2 <- ggplotGrob(dummy)
+  
+  gtable_select <- function (x, ...) 
+  {
+    matches <- c(...)
+    x$layout <- x$layout[matches, , drop = FALSE]
+    x$grobs <- x$grobs[matches]
+    x
+  }
+  
+  panels <- grepl(pattern="panel", g2$layout$name)
+  strips <- grepl(pattern="strip-t", g2$layout$name)
+  g2$layout$t[panels] <- g2$layout$t[panels] - 1
+  g2$layout$b[panels] <- g2$layout$b[panels] - 1
+  
+  new_strips <- gtable_select(g2, panels | strips)
+  grid.newpage()
+  grid.draw(new_strips)
+  
+  gtable_stack <- function(g1, g2){
+    g1$grobs <- c(g1$grobs, g2$grobs)
+    g1$layout <- transform(g1$layout, z= z-max(z), name="g2")
+    g1$layout <- rbind(g1$layout, g2$layout)
+    g1
+  }
+  ## ideally you'd remove the old strips, for now they're just covered
+  new_plot <- gtable_stack(g1, new_strips)
+  
+  grid.draw(new_plot)
+  NULL
+}
+
+do_id_plot_both(data_with_both) 
+
+png2 <- function(x) {
+  png("figures/TTWA/alternative_share_id_by_dens_both_and_ttwa_in_2004.png", 
+      width = 25, height = 25, units = "cm", res = 300)
+}
+
+dev.copy(dev.cur(), device = png2)
+dev.off()
+
 
 
 # FIGURE: Share of both by decile of distancein 2004 only ------------------------------------------------------
