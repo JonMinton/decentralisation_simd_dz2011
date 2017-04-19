@@ -69,6 +69,49 @@ dta <- read_csv("data/imd/imd_id_lsoa2011_tidied.csv", col_types = "cddd")
 dist_to_centre_scot <- read_csv("data/dz_2011_by_dist_to_centres.csv")
 dta_scot <- read_csv("data/simd/simd_combined_on_2011.csv")
 
+
+# Nick Request ( 19/4/2017)
+
+# Hi. I’ve got a Masters student who wants to do some analysis of measures 
+# of access to services in relation to urban/suburban differences. Would you 
+# be happy for us to share a copy of the dataset you constructed i.e. 
+# just the DZ code, TTWA, density measure and distance from TTWA centre? 
+# He’s planning on using density on its own at the moment so this would 
+# mean he could combine distance and density to try to identify ‘suburbs’. 
+# If happy, cld you send me a copy as a csv file? Thanks.
+
+# First do for England, then Scotland
+
+dist_to_centre %>% 
+  inner_join(dta) %>% 
+  filter(year == max(year)) %>% 
+  mutate(density = pop_total / area) %>%
+  select(lsoa, place, distance, density) -> distdens_eng
+
+dist_to_centre_scot %>%
+  select(dz, place, distance, area) %>% 
+  inner_join(dta_scot, by = c("dz" = "dz_2011")) %>% 
+  filter(year == max(year)) %>% 
+  mutate(density = pop_total / area) %>%
+  select(lsoa = dz, place, distance, density) -> distdens_scot
+
+distdens <- bind_rows(distdens_eng, distdens_scot) 
+rm(distdens_eng, distdens_scot)
+
+distdens %>% 
+  group_by(place) %>% 
+  arrange(place, distance) %>% 
+  mutate(distance_decile = factor(ntile(distance, 10))) -> distdens
+
+distdens %>% 
+  ggplot(., aes(x = distance, colour = NULL, fill = distance_decile, group = distance_decile)) + 
+  facet_wrap(~place) + 
+  geom_histogram(bins = 100)
+
+distdens %>% 
+  write_csv(path = "data/distance_and_density_in_last_year.csv")
+
+
 # 
 # 
 # 
